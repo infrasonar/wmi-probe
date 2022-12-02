@@ -92,6 +92,6 @@ async def wmiquery(
         raise CheckException(error_msg)
 
 
-async def wmiclose(conn: Connection, service: Service):
+def wmiclose(conn: Connection, service: Service):
     service.close()
     conn.close()

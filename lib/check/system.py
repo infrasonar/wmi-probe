@@ -23,7 +23,7 @@ async def check_system(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = wmiconn(asset, asset_config, check_config)
+    conn, service = await wmiconn(asset, asset_config, check_config)
     try:
         rows = await wmiquery(conn, service, QUERY)
         state = get_state(TYPE_NAME, rows)
