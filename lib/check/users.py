@@ -38,7 +38,7 @@ def get_logonid(itm):
         return None
 
 
-async def check_remote_users(
+async def check_users(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:

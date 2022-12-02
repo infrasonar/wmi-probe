@@ -1,13 +1,28 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from typing import Tuple
 from ..utils import get_state
-from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import ACCESS_LU, CONFIG_MAN_ERR_CODE, DRIVE_TYPES
+from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
-TYPE_NAME = "volume"
-QUERY = Query("""
+PHYSICAL_TYPE = "physical"
+PHYSICAL_QUERY = Query("""
+    SELECT
+    Name, AvgDiskQueueLength, AvgDiskReadQueueLength, AvgDiskWriteQueueLength,
+    CurrentDiskQueueLength, DiskReadBytesPersec, DiskReadsPersec,
+    DiskWriteBytesPersec, DiskWritesPersec, PercentDiskReadTime,
+    PercentDiskWriteTime
+    FROM Win32_PerfFormattedData_PerfDisk_PhysicalDisk
+""")
+LOGICAL_TYPE = "logical"
+LOGICAL_QUERY = Query("""
+    SELECT
+    Name, DiskReadsPersec, DiskWritesPersec
+    FROM Win32_PerfFormattedData_PerfDisk_LogicalDisk
+    WHERE name != "_Total"
+""")
+VOLUME_TYPE = "volume"
+VOLUME_QUERY = Query("""
     SELECT
     Name, Access, Automount, BlockSize, Capacity,
     Compressed, ConfigManagerErrorCode, ConfigManagerUserConfig,
@@ -22,7 +37,7 @@ QUERY = Query("""
 """)
 
 
-def on_item(itm: dict) -> dict:
+def on_item_volume(itm: dict) -> dict:
     free = itm['FreeSpace']
     total = itm['Capacity']
     used = total - free
@@ -39,14 +54,21 @@ def on_item(itm: dict) -> dict:
     }
 
 
-async def check_volume(
+async def check_storage(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
     conn, service = await wmiconn(asset, asset_config, check_config)
     try:
-        rows = await wmiquery(conn, service, QUERY)
-        state = get_state(TYPE_NAME, rows, on_item)
+        rows = await wmiquery(conn, service, PHYSICAL_QUERY)
+        state = get_state(PHYSICAL_TYPE, rows)
+
+        rows = await wmiquery(conn, service, LOGICAL_QUERY)
+        state.update(get_state(LOGICAL_TYPE, rows))
+
+        rows = await wmiquery(conn, service, VOLUME_QUERY)
+        state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
     finally:
         wmiclose(conn, service)
+
     return state

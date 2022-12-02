@@ -5,7 +5,7 @@ from ..utils import get_state, parse_wmi_date
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import INSTALL_STATES_LU, LANGUAGE_NAMES
 
-TYPE_NAME = "installedSoftware"
+TYPE_NAME = "installed"
 QUERY = Query("""
     SELECT
     Description, InstallDate, InstallDate2, InstallLocation, InstallSource,
@@ -37,7 +37,7 @@ def on_item(itm: dict) -> dict:
     }
 
 
-async def check_installed_software(
+async def check_software(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
