@@ -8,7 +8,7 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 TYPE_NAME = "updates"
 QUERY = Query("""
     SELECT
-    Description, Name, CSName, FixComments,
+    Description, Name, FixComments,
     HotFixID, InstalledBy, InstalledOn, ServicePackInEffect
     FROM Win32_QuickFixEngineering
 """)
@@ -50,6 +50,6 @@ async def check_updates(
             last = itm
 
     if last:
-        state['lastUpdate'] = [last]
+        state['last'] = [last]
 
     return state
