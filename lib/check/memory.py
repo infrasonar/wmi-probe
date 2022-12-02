@@ -51,9 +51,10 @@ async def check_memory(
     finally:
         wmiclose(conn, service)
 
-    total = {
+    total = on_item_pagefile({
+        'Name': 'total',
         'AllocatedBaseSize': sum(itm['AllocatedBaseSize'] for itm in rows),
         'CurrentUsage': sum(itm['CurrentUsage'] for itm in rows),
-    }
-    add_total_item(state, total, PAGEFILE_TYPE)
+    })
+    state[f"{PAGEFILE_TYPE}Total"] = [total]
     return state
