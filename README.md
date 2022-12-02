@@ -19,4 +19,3 @@ Variable          | Default                        | Description
 ```
 docker build -t wmi-probe . --no-cache
 ```
-# wmi-probe

@@ -1,0 +1,49 @@
+name: Deploy Version/Latest
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "!v*-*"  # exclude *-alpha etc.
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/infrasonar/wmi-probe
+
+      - name: Get the version
+        id: get_version
+        run: echo "VERSION=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        env:
+          PAT: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/infrasonar/wmi-probe:${{ steps.get_version.outputs.VERSION }},ghcr.io/infrasonar/wmi-probe:latest,ghcr.io/infrasonar/wmi-probe:unstable
+          labels: ${{ steps.meta.outputs.labels }}
