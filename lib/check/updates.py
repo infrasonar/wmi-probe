@@ -2,7 +2,7 @@ from aiowmi.query import Query
 from libprobe.asset import Asset
 from typing import Tuple
 from ..utils import get_state, parse_wmi_date, parse_wmi_date_1600
-from ..wmiquery import wmiquery
+from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
 TYPE_NAME = "updates"
@@ -34,8 +34,13 @@ async def check_updates(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    rows = await wmiquery(asset, asset_config, check_config, QUERY)
-    state = get_state(TYPE_NAME, rows, on_item)
+
+    conn, service = await wmiconn(asset, asset_config, check_config)
+    try:
+        rows = await wmiquery(conn, service, QUERY)
+        state = get_state(TYPE_NAME, rows)
+    finally:
+        wmiclose(conn, service)
 
     state['last_update'] = last = None
     for itm in state[TYPE_NAME]:
