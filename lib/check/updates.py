@@ -50,6 +50,6 @@ async def check_updates(
             last = itm
 
     if last:
-        state['lastUpdate'] = [last]
+        state['last'] = [last]
 
     return state
