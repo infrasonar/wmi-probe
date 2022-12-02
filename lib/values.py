@@ -1,11 +1,3 @@
-ACCESS_LU = {
-    0: 'Unknown media',
-    1: 'The media is readable',
-    2: 'The media is writable',
-    3: 'The media is readable and writable',
-    4: '"Write once" media',
-}
-
 AVAILABILITY_LU = {
     1: 'Other',
     2: 'Unknown',

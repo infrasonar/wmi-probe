@@ -1,7 +1,7 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from ..utils import get_state
-from ..values import ACCESS_LU, CONFIG_MAN_ERR_CODE, DRIVE_TYPES
+from ..values import DRIVE_TYPES
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
@@ -24,14 +24,10 @@ LOGICAL_QUERY = Query("""
 VOLUME_TYPE = "volume"
 VOLUME_QUERY = Query("""
     SELECT
-    Name, Access, Automount, BlockSize, Capacity,
-    Compressed, ConfigManagerErrorCode, ConfigManagerUserConfig,
-    DeviceID, DirtyBitSet, DriveLetter,
-    DriveType, ErrorCleared, ErrorDescription, ErrorMethodology, FileSystem,
-    FreeSpace, IndexingEnabled, Label, LastErrorCode,
-    MaximumFileNameLength, NumberOfBlocks,
-    QuotasEnabled, QuotasIncomplete, QuotasRebuilding,
-    SystemName, SerialNumber, SupportsDiskQuotas,
+    Name, Automount, Capacity, Compressed, DeviceID, DirtyBitSet, DriveLetter,
+    DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
+    MaximumFileNameLength, PowerManagementSupported, QuotasEnabled,
+    QuotasIncomplete, QuotasRebuilding, SerialNumber, SupportsDiskQuotas,
     SupportsFileBasedCompression
     FROM Win32_Volume
 """)
@@ -44,14 +40,9 @@ def on_item_volume(itm: dict) -> dict:
     pct = 100. * used / total if total else 0.
 
     itm['name'] = itm.pop('Name')
-    return {
-        **itm,
-        'Access': ACCESS_LU.get(itm['Access']),
-        'ConfigManagerErrorCode':
-            CONFIG_MAN_ERR_CODE.get(itm['ConfigManagerErrorCode']),
-        'DriveType': DRIVE_TYPES.get(itm['DriveType']),
-        'PercentUsed': pct,
-    }
+    itm['DriveType'] = DRIVE_TYPES.get(itm['DriveType'])
+    itm['PercentUsed'] = pct
+    return itm
 
 
 async def check_storage(
