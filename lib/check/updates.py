@@ -42,11 +42,14 @@ async def check_updates(
     finally:
         wmiclose(conn, service)
 
-    state['last_update'] = last = None
+    last = None
     for itm in state[TYPE_NAME]:
         if itm['InstalledOn'] and (
             not last or itm['InstalledOn'] > last['InstalledOn']
         ):
             last = itm
+
+    if last:
+        state['lastUpdate'] = [last]
 
     return state
