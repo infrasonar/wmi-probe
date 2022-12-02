@@ -1,7 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from typing import Tuple
-from ..wmiquery import wmiquery
+from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..utils import get_state
 
 
@@ -19,6 +18,10 @@ async def check_services(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    rows = await wmiquery(asset, asset_config, check_config, QUERY)
-    state = get_state(TYPE_NAME, rows)
+    conn, service = await wmiconn(asset, asset_config, check_config)
+    try:
+        rows = await wmiquery(conn, service, QUERY)
+        state = get_state(TYPE_NAME, rows)
+    finally:
+        wmiclose(conn, service)
     return state

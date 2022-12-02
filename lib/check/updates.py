@@ -38,10 +38,10 @@ async def check_updates(
     conn, service = await wmiconn(asset, asset_config, check_config)
     try:
         rows = await wmiquery(conn, service, QUERY)
-        state = get_state(TYPE_NAME, rows)
     finally:
         wmiclose(conn, service)
 
+    state = get_state(TYPE_NAME, rows, on_item)
     last = None
     for itm in state[TYPE_NAME]:
         if itm['InstalledOn'] and (

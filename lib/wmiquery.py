@@ -90,6 +90,7 @@ async def wmiquery(
         # issues with WMI queries;
         logging.exception(f'query error: {error_msg};')
         raise CheckException(error_msg)
+    return rows
 
 
 def wmiclose(conn: Connection, service: Service):

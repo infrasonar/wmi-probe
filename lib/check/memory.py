@@ -1,8 +1,7 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from typing import Tuple
-from ..utils import get_state
-from ..wmiquery import wmiquery
+from ..utils import get_state, add_total_item
+from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
 TYPE_NAME = "memory"
@@ -11,6 +10,12 @@ QUERY = Query("""
     CommitLimit, CommittedBytes, PercentCommittedBytesInUse
     FROM Win32_PerfFormattedData_PerfOS_Memory
 """)
+PAGEFILE_TYPE = "pageFile"
+PAGEFILE_QUERY = Query("""
+    SELECT
+    Name, AllocatedBaseSize, CurrentUsage
+    FROM Win32_PageFileUsage
+""")
 
 
 def on_item(itm: dict) -> dict:
@@ -18,10 +23,37 @@ def on_item(itm: dict) -> dict:
     return itm
 
 
+def on_item_pagefile(itm: dict) -> dict:
+    total = itm['AllocatedBaseSize'] * 1024 * 1024
+    used = itm['CurrentUsage'] * 1024 * 1024
+    free = total - used
+    percentage = 100 * used / total if total else 0.
+    return {
+        'name': itm['Name'],
+        'BytesTotal': total,
+        'BytesFree': free,
+        'BytesUsed': used,
+        'PercentUsed': percentage
+    }
+
+
 async def check_memory(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    rows = await wmiquery(asset, asset_config, check_config, QUERY)
-    state = get_state(TYPE_NAME, rows, on_item)
+    conn, service = await wmiconn(asset, asset_config, check_config)
+    try:
+        rows = await wmiquery(conn, service, QUERY)
+        state = get_state(TYPE_NAME, rows, on_item)
+
+        rows = await wmiquery(conn, service, PAGEFILE_QUERY)
+        state.update(get_state(PAGEFILE_TYPE, rows, on_item_pagefile))
+    finally:
+        wmiclose(conn, service)
+
+    total = {
+        'AllocatedBaseSize': sum(itm['AllocatedBaseSize'] for itm in rows),
+        'CurrentUsage': sum(itm['CurrentUsage'] for itm in rows),
+    }
+    add_total_item(state, total, PAGEFILE_TYPE)
     return state

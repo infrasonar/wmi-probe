@@ -44,7 +44,7 @@ async def check_installed_software(
     conn, service = await wmiconn(asset, asset_config, check_config)
     try:
         rows = await wmiquery(conn, service, QUERY)
-        state = get_state(TYPE_NAME, rows)
+        state = get_state(TYPE_NAME, rows, on_item)
     finally:
         wmiclose(conn, service)
     return state
