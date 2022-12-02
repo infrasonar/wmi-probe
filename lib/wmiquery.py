@@ -2,7 +2,10 @@ import datetime
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from libprobe.exceptions import CheckException, IgnoreCheckException
+from libprobe.exceptions import (
+    CheckException,
+    IgnoreCheckException,
+    IgnoreResultException)
 from aiowmi.query import Query
 from aiowmi.connection import Connection
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
@@ -25,9 +28,12 @@ async def wmiquery(
     address = check_config.get('address')
     if not address:
         address = asset.name
-    assert asset_config, 'missing credentials'
-    username = asset_config['username']
-    password = asset_config['password']
+    username = asset_config.get('username')
+    password = asset_config.get('password')
+    if None in (username, password):
+        logging.error(f'missing credentails for {asset}')
+        raise IgnoreResultException
+
     if '\\' in username:
         # Replace double back-slash with single if required
         username = username.replace('\\\\', '\\')
@@ -67,9 +73,7 @@ async def wmiquery(
                     else:
                         row[name] = prop.value
                 rows.append(row)
-    except IgnoreCheckException:
-        raise
-    except (WbemExInvalidClass, WbemExInvalidNamespace):
+    except (IgnoreCheckException, WbemExInvalidClass, WbemExInvalidNamespace):
         raise IgnoreCheckException
     except CheckException:
         raise  # Re-raise check exceptions
