@@ -26,9 +26,8 @@ VOLUME_QUERY = Query("""
     SELECT
     Name, Automount, Capacity, Compressed, DeviceID, DirtyBitSet, DriveLetter,
     DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
-    MaximumFileNameLength, PowerManagementSupported, QuotasEnabled,
-    QuotasIncomplete, QuotasRebuilding, SerialNumber, SupportsDiskQuotas,
-    SupportsFileBasedCompression
+    MaximumFileNameLength, QuotasEnabled, QuotasIncomplete, QuotasRebuilding,
+    SerialNumber, SupportsDiskQuotas, SupportsFileBasedCompression
     FROM Win32_Volume
 """)
 
