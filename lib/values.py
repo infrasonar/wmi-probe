@@ -337,3 +337,27 @@ LANGUAGE_NAMES = {
     0x7C04: 'Chinese (zh)',
     0x7C1A: 'Serbian (sr)',
 }
+
+ROUTE_TYPE_MAP = {
+    1: 'Other',
+    2: 'Invalid',
+    3: 'Direct',
+    4: 'Indirect'
+}
+
+ROUTE_PROTOCOL_MAP = {
+    1: 'other',
+    2: 'local',
+    3: 'netmgmt',
+    4: 'icmp',
+    5: 'egp',
+    6: 'ggp',
+    7: 'hello',
+    8: 'rip',
+    9: 'is-is',
+    10: 'es-is',
+    11: 'ciscoIgrp',
+    12: 'bbnSpfIgp',
+    13: 'ospf',
+    14: 'bgp',
+}

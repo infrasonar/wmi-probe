@@ -3,7 +3,13 @@ from libprobe.asset import Asset
 from typing import Tuple
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
-from ..values import AVAILABILITY_LU, CONFIG_MAN_ERR_CODE, STATUS_INFO
+from ..values import (
+    AVAILABILITY_LU,
+    CONFIG_MAN_ERR_CODE,
+    STATUS_INFO,
+    ROUTE_TYPE_MAP,
+    ROUTE_PROTOCOL_MAP,
+)
 
 
 ADAPTER_TYPE = "adapter"
@@ -45,35 +51,11 @@ def on_item_adapter(itm: dict) -> dict:
     }
 
 
-_TYPE_MAP = {
-    1: 'other',
-    2: 'invalid',
-    3: 'direct',
-    4: 'indirect'
-}
-_PROTOCOL_MAP = {
-    1: 'other',
-    2: 'local',
-    3: 'netmgmt',
-    4: 'icmp',
-    5: 'egp',
-    6: 'ggp',
-    7: 'hello',
-    8: 'rip',
-    9: 'is-is',
-    10: 'es-is',
-    11: 'ciscoIgrp',
-    12: 'bbnSpfIgp',
-    13: 'ospf',
-    14: 'bgp',
-}
-
-
 def on_item_route(itm: dict) -> dict:
     itm['name'] = '{Destination} [{InterfaceIndex}]'.format_map(itm)
     itm['Metric'] = itm.pop('Metric1')
-    itm['Protocol'] = _PROTOCOL_MAP.get(itm['Protocol'])
-    itm['Type'] = _TYPE_MAP.get(itm['Type'])
+    itm['Protocol'] = ROUTE_PROTOCOL_MAP.get(itm['Protocol'])
+    itm['Type'] = ROUTE_TYPE_MAP.get(itm['Type'])
     return itm
 
 
