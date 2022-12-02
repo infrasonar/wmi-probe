@@ -4,24 +4,18 @@ from typing import Tuple
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import (
-    AVAILABILITY_LU,
     CONFIG_MAN_ERR_CODE,
-    STATUS_INFO,
-    ROUTE_TYPE_MAP,
+    NET_CONN_STATUS,
     ROUTE_PROTOCOL_MAP,
+    ROUTE_TYPE_MAP,
 )
-
 
 ADAPTER_TYPE = "adapter"
 ADAPTER_QUERY = Query("""
     SELECT
-    AdapterType, AutoSense, Availability, ConfigManagerErrorCode,
-    ConfigManagerUserConfig, Description, InstallDate, Installed,
-    InterfaceIndex, LastErrorCode, MACAddress, Manufacturer,
-    MaxNumberControlled, MaxSpeed, NetConnectionID, NetConnectionStatus,
-    NetEnabled, NetworkAddresses, PermanentAddress, PhysicalAdapter,
-    PNPDeviceID, PowerManagementSupported, ProductName, ServiceName, Speed,
-    Status, StatusInfo, SystemName, TimeOfLastReset
+    AdapterType, AutoSense, ConfigManagerErrorCode, MACAddress, Manufacturer,
+    NetConnectionID, NetConnectionStatus, NetEnabled, PhysicalAdapter,
+    PNPDeviceID, ProductName, ServiceName, Speed,
     FROM Win32_NetworkAdapter
 """)
 INTERFACE_TYPE = "interface"
@@ -42,13 +36,11 @@ ROUTE_QUERY = Query("""
 
 def on_item_adapter(itm: dict) -> dict:
     itm['name'] = itm.pop('PNPDeviceID')
-    return {
-        **itm,
-        'Availability': AVAILABILITY_LU.get(itm['Availability']),
-        'ConfigManagerErrorCode':
-            CONFIG_MAN_ERR_CODE.get(itm['ConfigManagerErrorCode']),
-        'StatusInfo': STATUS_INFO.get(itm['StatusInfo']),
-    }
+    itm['NetConnectionStatus'] = \
+        NET_CONN_STATUS.get(itm['NetConnectionStatus'], 'Other')
+    itm['ConfigManagerErrorCode'] = \
+        CONFIG_MAN_ERR_CODE.get(itm['ConfigManagerErrorCode'])
+    return itm
 
 
 def on_item_route(itm: dict) -> dict:

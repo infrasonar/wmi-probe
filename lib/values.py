@@ -1,30 +1,3 @@
-AVAILABILITY_LU = {
-    1: 'Other',
-    2: 'Unknown',
-    3: 'Running or Full Power',
-    4: 'Warning',
-    5: 'In Test',
-    6: 'Not Applicable',
-    7: 'Power Off',
-    8: 'Offline',
-    9: 'Off Duty',
-    10: 'Degraded',
-    11: 'Not Installed',
-    12: 'Install Error',
-    13: ('Power Save - Unknown: The device is known to be in a power save'
-         'mode, but its exact status is unknown'),
-    14: ('Power Save - Low Power Mode: The device is in a power save state, '
-         'but still functioning, and may exhibit degraded performance'),
-    15: ('Power Save - Standby: The device is not functioning, but could be '
-         'brought to full power quickly'),
-    16: 'Power Cycle',
-    17: ('Power Save - Warning: The device is in a warning state, but also in '
-         'a power save mode'),
-    18: 'Paused',
-    19: 'Not Ready',
-    20: 'Not Configured',
-}
-
 CONFIG_MAN_ERR_CODE = {
     0: 'This device is working properly',
     1: 'This device is not configured correctly',
@@ -80,14 +53,6 @@ DRIVE_TYPES = {
     4: 'Network Drive',
     5: 'Compact Disk',
     6: 'RAM Disk',
-}
-
-STATUS_INFO = {
-    1: 'Other',
-    2: 'Unknown',
-    3: 'Enabled',
-    4: 'Disabled',
-    5: 'Not Applicable',
 }
 
 INSTALL_STATES_LU = {
@@ -353,3 +318,19 @@ ROUTE_PROTOCOL_MAP = {
     13: 'ospf',
     14: 'bgp',
 }
+
+NET_CONN_STATUS = {
+    0: 'Disconnected',
+    1: 'Connecting',
+    2: 'Connected',
+    3: 'Disconnecting',
+    4: 'Hardware Not Present',
+    5: 'Hardware Disabled',
+    6: 'Hardware Malfunction',
+    7: 'Media Disconnected',
+    8: 'Authenticating',
+    9: 'Authentication Succeeded',
+    10: 'Authentication Failed',
+    11: 'Invalid Address',
+    12: 'Credentials Required',
+}  # 13..X  Other
