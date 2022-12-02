@@ -29,9 +29,7 @@ INTERFACE_QUERY = Query("""
 ROUTE_TYPE = "route"
 ROUTE_QUERY = Query("""
     SELECT
-    Name, Age, Caption, Description, Destination, Information, InterfaceIndex,
-    Mask, Metric1, Metric2, Metric3, Metric4, Metric5, NextHop, Protocol,
-    Status, InstallDate, Type
+    Destination, InterfaceIndex, Mask, Metric1, NextHop, Protocol, Type
     FROM Win32_IP4RouteTable
 """)
 
@@ -47,8 +45,35 @@ def on_item_adapter(itm: dict) -> dict:
     }
 
 
+_TYPE_MAP = {
+    1: 'other',
+    2: 'invalid',
+    3: 'direct',
+    4: 'indirect'
+}
+_PROTOCOL_MAP = {
+    1: 'other',
+    2: 'local',
+    3: 'netmgmt',
+    4: 'icmp',
+    5: 'egp',
+    6: 'ggp',
+    7: 'hello',
+    8: 'rip',
+    9: 'is-is',
+    10: 'es-is',
+    11: 'ciscoIgrp',
+    12: 'bbnSpfIgp',
+    13: 'ospf',
+    14: 'bgp',
+}
+
+
 def on_item_route(itm: dict) -> dict:
     itm['name'] = '{Destination} [{InterfaceIndex}]'.format_map(itm)
+    itm['Metric'] = itm.pop('Metric1')
+    itm['Protocol'] = _PROTOCOL_MAP.get(itm['Protocol'])
+    itm['Type'] = _TYPE_MAP.get(itm['Type'])
     return itm
 
 
