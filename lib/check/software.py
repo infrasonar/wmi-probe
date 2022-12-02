@@ -8,7 +8,7 @@ from ..values import INSTALL_STATES_LU, LANGUAGE_NAMES
 TYPE_NAME = "installed"
 QUERY = Query("""
     SELECT
-    Description, InstallDate, InstallDate2, InstallState,  Name,  Vendor,
+    Description, InstallDate, InstallDate2, InstallState, Name, Vendor,
     Version
     FROM Win32_Product
 """)
