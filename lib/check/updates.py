@@ -8,7 +8,7 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 TYPE_NAME = "updates"
 QUERY = Query("""
     SELECT
-    Description, Name, CSName, FixComments,
+    Description, Name, FixComments,
     HotFixID, InstalledBy, InstalledOn, ServicePackInEffect
     FROM Win32_QuickFixEngineering
 """)
