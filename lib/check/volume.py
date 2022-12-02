@@ -43,6 +43,10 @@ async def check_volume(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    rows = await wmiquery(asset, asset_config, check_config, QUERY)
-    state = get_state(TYPE_NAME, rows, on_item)
+    conn, service = wmiconn(asset, asset_config, check_config)
+    try:
+        rows = await wmiquery(conn, service, QUERY)
+        state = get_state(TYPE_NAME, rows)
+    finally:
+        wmiclose(conn, service)
     return state

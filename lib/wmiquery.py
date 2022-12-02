@@ -8,8 +8,9 @@ from libprobe.exceptions import (
     IgnoreResultException)
 from aiowmi.query import Query
 from aiowmi.connection import Connection
+from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
-from typing import List, Dict
+from typing import List, Tuple, Dict
 
 
 DTYPS_NOT_NULL = {
@@ -20,11 +21,10 @@ DTYPS_NOT_NULL = {
 }
 
 
-async def wmiquery(
+async def wmiconn(
         asset: Asset,
         asset_config: dict,
-        check_config: dict,
-        query: Query) -> List[Dict]:
+        check_config: dict) -> Tuple[Connection, Service]:
     address = check_config.get('address')
     if not address:
         address = asset.name
@@ -45,7 +45,6 @@ async def wmiquery(
 
     conn = Connection(address, username, password, domain)
     service = None
-    rows = []
 
     try:
         await conn.connect()
@@ -54,12 +53,22 @@ async def wmiquery(
         raise CheckException(f'unable to connect: {error_msg}')
 
     try:
-        try:
-            service = await conn.negotiate_ntlm()
-        except Exception as e:
-            error_msg = str(e) or type(e).__name__
-            raise CheckException(f'unable to authenticate: {error_msg}')
+        service = await conn.negotiate_ntlm()
+    except Exception as e:
+        conn.close()
+        error_msg = str(e) or type(e).__name__
+        raise CheckException(f'unable to authenticate: {error_msg}')
 
+    return conn, service
+
+
+async def wmiquery(
+        conn: Connection,
+        service: Service,
+        query: Query) -> List[dict]:
+    rows = []
+
+    try:
         async with query.context(conn, service) as qc:
             async for props in qc.results():
                 row = {}
@@ -73,19 +82,16 @@ async def wmiquery(
                     else:
                         row[name] = prop.value
                 rows.append(row)
-    except (IgnoreCheckException, WbemExInvalidClass, WbemExInvalidNamespace):
+    except (WbemExInvalidClass, WbemExInvalidNamespace):
         raise IgnoreCheckException
-    except CheckException:
-        raise  # Re-raise check exceptions
     except Exception as e:
         error_msg = str(e) or type(e).__name__
         # At this point log the exception as this can be useful for debugging
         # issues with WMI queries;
-        logging.exception(f'query error: {error_msg}; {asset}')
+        logging.exception(f'query error: {error_msg};')
         raise CheckException(error_msg)
-    finally:
-        if service is not None:
-            service.close()
-        conn.close()
 
-    return rows
+
+async def wmiclose(conn: Connection, service: Service):
+    service.close()
+    conn.close()
