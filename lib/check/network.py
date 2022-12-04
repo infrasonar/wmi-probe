@@ -15,7 +15,7 @@ ADAPTER_QUERY = Query("""
     SELECT
     AdapterType, AutoSense, ConfigManagerErrorCode, MACAddress, Manufacturer,
     NetConnectionID, NetConnectionStatus, NetEnabled, PhysicalAdapter,
-    PNPDeviceID, ProductName, ServiceName, Speed,
+    PNPDeviceID, ProductName, ServiceName, Speed
     FROM Win32_NetworkAdapter
 """)
 INTERFACE_TYPE = "interface"
