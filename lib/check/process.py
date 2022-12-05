@@ -1,4 +1,5 @@
 from aiowmi.query import Query
+from collections import defaultdict
 from libprobe.asset import Asset
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..utils import get_state
@@ -15,15 +16,30 @@ QUERY = Query("""
     FROM Win32_PerfFormattedData_PerfProc_Process WHERE Name != "_Total"
 """)
 
-NON_SUMMABLES = {
-    'Name',
-    'CreatingProcessID',
-    'IDProcess',
-    'PageFileBytesPeak',
-    'PriorityBase',
-    'VirtualBytesPeak',
-    'WorkingSetPeak',
-}
+
+def new_item():
+    return {
+        'CreatingProcessID': [],
+        'ElapsedTime': 0,
+        'HandleCount': 0,
+        'IDProcess': [],
+        'PageFaultsPersec': 0,
+        'PageFileBytes': 0,
+        'PageFileBytesPeak': 0,
+        'PercentPrivilegedTime': 0,
+        'PercentProcessorTime': 0,
+        'PercentUserTime': 0,
+        'PoolNonpagedBytes': 0,
+        'PoolPagedBytes': 0,
+        'PriorityBase': [],
+        'PrivateBytes': 0,
+        'ProcessCount': 0,
+        'ThreadCount': 0,
+        'VirtualBytes': 0,
+        'VirtualBytesPeak': 0,
+        'WorkingSet': 0,
+        'WorkingSetPeak': 0,
+    }
 
 
 async def check_process(
@@ -33,34 +49,40 @@ async def check_process(
     conn, service = await wmiconn(asset, asset_config, check_config)
     try:
         rows = await wmiquery(conn, service, QUERY)
-        state = get_state(TYPE_NAME, rows)
     finally:
         wmiclose(conn, service)
 
-    item_dict = {
-        item['name']: item
-        for item in state[TYPE_NAME]
-    }
+    idict = defaultdict(new_item)
+    items = state[TYPE_NAME]
+    for row in rows:
+        name = row['Name'].split('#')[0]
+        itm = idict[name]
+        itm['name'] = name
+        itm['CreatingProcessID'].append(row['CreatingProcessID'])
+        itm['ElapsedTime'] += row['ElapsedTime']
+        itm['HandleCount'] += row['HandleCount']
+        itm['IDProcess'].append(row['IDProcess'])
+        itm['PageFaultsPersec'] += row['PageFaultsPersec']
+        itm['PageFileBytes'] += row['PageFileBytes']
+        itm['PageFileBytesPeak'] = max(
+            itm['PageFileBytesPeak'],
+            row['PageFileBytesPeak'])
+        itm['PercentPrivilegedTime'] += row['PercentPrivilegedTime']
+        itm['PercentProcessorTime'] += row['PercentProcessorTime']
+        itm['PercentUserTime'] += row['PercentUserTime']
+        itm['PoolNonpagedBytes'] += row['PoolNonpagedBytes']
+        itm['PoolPagedBytes'] += row['PoolPagedBytes']
+        itm['PriorityBase'].append(row['PriorityBase'])
+        itm['PrivateBytes'] += row['PrivateBytes']
+        itm['ProcessCount'] += 1
+        itm['ThreadCount'] += row['ThreadCount']
+        itm['VirtualBytes'] += row['VirtualBytes']
+        itm['VirtualBytesPeak'] = max(
+            itm['VirtualBytesPeak'],
+            row['VirtualBytesPeak'])
+        itm['WorkingSet'] += row['WorkingSet']
+        itm['WorkingSetPeak'] = max(
+            itm['WorkingSetPeak'],
+            row['WorkingSetPeak'])
 
-    hash_names = [name for name in item_dict if '#' in name]
-    for hash_name in hash_names:
-        name = hash_name.split('#')[0]
-        if name not in item_dict:
-            continue
-        hash_dct = item_dict.pop(hash_name)
-        itm = item_dict[name]
-        if 'ProcessCount' in itm:
-            itm['ProcessCount'] += 1
-        else:
-            itm['ProcessCount'] = 2  # this is the second instance
-        for ky in set(hash_dct) - NON_SUMMABLES:
-            itm[ky] += hash_dct[ky]
-
-    for itm in item_dict.values():
-        itm['PrivateBytesAvg'] = \
-            itm['PrivateBytes'] / itm.get('ProcessCount', 1)
-
-    # re-write item list, some might have been popped
-    state[TYPE_NAME] = list(item_dict.values())
-
-    return state
+    return {TYPE_NAME: list(idict.values())}

@@ -47,15 +47,5 @@ def get_state(
     """Default get_state function."""
 
     item_list = []
-    state = {type_name: item_list}
-
-    for row in rows:
-        item = on_item(row)
-
-        # For some queries a Name='_Total' item exists. In this case we want to
-        # create a new type ending with Total;
-        if item['name'] == '_Total':
-            add_total_item(state, item, type_name)
-        else:
-            item_list.append(item)
+    state = {type_name: [on_item(itm) for itm in rows]}
     return state
