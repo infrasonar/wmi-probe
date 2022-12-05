@@ -38,7 +38,7 @@ def on_item_adapter(itm: dict) -> dict:
     itm['name'] = itm.pop('PNPDeviceID')
     itm['NetConnectionStatus'] = \
         NET_CONN_STATUS.get(itm['NetConnectionStatus'], 'Other')
-    itm['ConfigManagerErrorCode'] = \
+    itm['ConfigManagerErrorMsg'] = \
         CONFIG_MAN_ERR_CODE.get(itm['ConfigManagerErrorCode'])
     return itm
 
