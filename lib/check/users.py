@@ -8,7 +8,7 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 LOGGED_ON_TYPE = "loggedOn"
 LOGGED_ON_QUERY = Query("""
     SELECT
-    Antecedent, Dependent
+    Antecedent
     FROM Win32_LoggedOnUser
 """)
 REMOTE_USERS_TYPE = "remote"
@@ -29,15 +29,6 @@ def get_itemname(itm):
         return None
 
 
-def get_logonid(itm):
-    try:
-        splitted = itm['Dependent'].split('"')
-        return splitted[1]
-    except Exception as e:
-        logging.error(e)
-        return None
-
-
 async def check_users(
         asset: Asset,
         asset_config: dict,
@@ -53,22 +44,15 @@ async def check_users(
         }
 
         rows = await wmiquery(conn, service, LOGGED_ON_QUERY)
-        name_login = defaultdict(list)
+        name_login = defaultdict(int)
         for itm in rows:
             name = get_itemname(itm)
-            logon_id = get_logonid(itm)
-            name_login[name].append(logon_id)
+            name_login[name] += 1
 
         state[LOGGED_ON_TYPE] = [{
             'name': name,
-            'LogonIds': logon_ids,
-            'SessionCount': len(logon_ids)
-        } for name, logon_ids in name_login.items()]
-
-        state[f'{LOGGED_ON_TYPE}Count'] = [{
-            'name': LOGGED_ON_TYPE,
-            'Count': len(rows),
-        }]
+            'SessionCount': count
+        } for name, count in name_login.items()]
     finally:
         wmiclose(conn, service)
     return state
