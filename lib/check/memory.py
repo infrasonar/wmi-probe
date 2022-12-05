@@ -1,6 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from ..utils import get_state, add_total_item
+from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 

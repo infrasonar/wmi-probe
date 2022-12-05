@@ -2,7 +2,6 @@ from aiowmi.query import Query
 from collections import defaultdict
 from libprobe.asset import Asset
 from ..wmiquery import wmiconn, wmiquery, wmiclose
-from ..utils import get_state
 
 
 TYPE_NAME = "process"
@@ -53,7 +52,6 @@ async def check_process(
         wmiclose(conn, service)
 
     idict = defaultdict(new_item)
-    items = state[TYPE_NAME]
     for row in rows:
         name = row['Name'].split('#')[0]
         itm = idict[name]

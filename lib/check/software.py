@@ -1,6 +1,5 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from typing import Tuple
 from ..utils import get_state, parse_wmi_date
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import INSTALL_STATES_LU, LANGUAGE_NAMES

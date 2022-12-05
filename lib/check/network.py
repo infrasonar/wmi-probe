@@ -1,6 +1,5 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from typing import Tuple
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import (
