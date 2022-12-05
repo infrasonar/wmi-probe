@@ -40,12 +40,30 @@ def add_total_item(state: dict, total_item: dict, type_name: str):
     state[f"{type_name}Total"] = [total_item]
 
 
-def get_state(
+def get_state_total(
         type_name: str,
         rows: List[dict],
         on_item: Callable[[dict], dict] = get_item) -> dict:
     """Default get_state function."""
 
     item_list = []
-    state = {type_name: [on_item(itm) for itm in rows]}
+    state = {type_name: item_list}
+
+    for row in rows:
+        item = on_item(row)
+
+        # For some queries a Name='_Total' item exists. In this case we want to
+        # create a new type ending with Total;
+        if item['name'] == '_Total':
+            add_total_item(state, item, type_name)
+        else:
+            item_list.append(item)
     return state
+
+
+def get_state(
+        type_name: str,
+        rows: List[dict],
+        on_item: Callable[[dict], dict] = get_item) -> dict:
+    """Default get_state function."""
+    return {type_name: [on_item(itm) for itm in rows]}

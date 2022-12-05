@@ -2,7 +2,6 @@ from libprobe.probe import Probe
 from lib.check.memory import check_memory
 from lib.check.network import check_network
 from lib.check.nt_domain import check_nt_domain
-from lib.check.nt_eventlog import check_nt_eventlog
 from lib.check.process import check_process
 from lib.check.services import check_services
 from lib.check.software import check_software
@@ -18,7 +17,6 @@ if __name__ == '__main__':
         'memory': check_memory,
         'network': check_network,
         'ntDomain': check_nt_domain,
-        'ntEventlog': check_nt_eventlog,
         'process': check_process,
         'services': check_services,
         'software': check_software,

@@ -3,7 +3,7 @@ import time
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from ..wmiquery import wmiconn, wmiquery, wmiclose
-from ..utils import get_state
+from ..utils import get_state, get_state_total
 
 
 SYSTEM_TYPE = "system"
@@ -84,7 +84,7 @@ async def check_system(
         state.update(get_state(OS_TYPE, rows, on_item_os))
 
         rows = await wmiquery(conn, service, PROCESSOR_QUERY)
-        state.update(get_state(PROCESSOR_TYPE, rows))
+        state.update(get_state_total(PROCESSOR_TYPE, rows))
     finally:
         wmiclose(conn, service)
     return state
