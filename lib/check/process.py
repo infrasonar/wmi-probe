@@ -12,7 +12,7 @@ QUERY = Query("""
     PercentProcessorTime, PercentUserTime, PoolNonpagedBytes, PoolPagedBytes,
     PriorityBase, PrivateBytes, ThreadCount, VirtualBytes, VirtualBytesPeak,
     WorkingSet, WorkingSetPeak
-    FROM Win32_PerfFormattedData_PerfProc_Process
+    FROM Win32_PerfFormattedData_PerfProc_Process WHERE Name != "_Total"
 """)
 
 NON_SUMMABLES = {

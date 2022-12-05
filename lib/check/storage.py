@@ -12,14 +12,14 @@ PHYSICAL_QUERY = Query("""
     CurrentDiskQueueLength, DiskReadBytesPersec, DiskReadsPersec,
     DiskWriteBytesPersec, DiskWritesPersec, PercentDiskReadTime,
     PercentDiskWriteTime
-    FROM Win32_PerfFormattedData_PerfDisk_PhysicalDisk
+    FROM Win32_PerfFormattedData_PerfDisk_PhysicalDisk WHERE Name != "_Total"
 """)
 LOGICAL_TYPE = "logical"
 LOGICAL_QUERY = Query("""
     SELECT
     Name, DiskReadsPersec, DiskWritesPersec
     FROM Win32_PerfFormattedData_PerfDisk_LogicalDisk
-    WHERE name != "_Total"
+    WHERE Name != "_Total"
 """)
 VOLUME_TYPE = "volume"
 VOLUME_QUERY = Query("""
@@ -28,7 +28,7 @@ VOLUME_QUERY = Query("""
     DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
     MaximumFileNameLength, QuotasEnabled, QuotasIncomplete, QuotasRebuilding,
     SerialNumber, SupportsDiskQuotas, SupportsFileBasedCompression
-    FROM Win32_Volume
+    FROM Win32_Volume  WHERE Name != "_Total"
 """)
 
 

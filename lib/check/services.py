@@ -8,7 +8,7 @@ TYPE_NAME = "services"
 QUERY = Query("""
     SELECT
     DesktopInteract, ExitCode, PathName, ServiceSpecificExitCode,
-    ServiceType, State, Status, Name, DisplayName, Description, ProcessId,
+    ServiceType, State, Status, Name, DisplayName, Description,
     StartMode, StartName, Started
     FROM Win32_Service
 """)
