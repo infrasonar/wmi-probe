@@ -8,8 +8,8 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 PHYSICAL_TYPE = "physical"
 PHYSICAL_QUERY = Query("""
     SELECT
-    Name, AvgDiskQueueLength, AvgDiskReadQueueLength, AvgDiskWriteQueueLength,
-    CurrentDiskQueueLength, DiskReadBytesPersec, DiskReadsPersec,
+    Name, AvgDiskReadQueueLength, AvgDiskWriteQueueLength,
+    DiskReadBytesPersec, DiskReadsPersec,
     DiskWriteBytesPersec, DiskWritesPersec, PercentDiskReadTime,
     PercentDiskWriteTime
     FROM Win32_PerfFormattedData_PerfDisk_PhysicalDisk WHERE Name != "_Total"
