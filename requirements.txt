@@ -1,2 +1,2 @@
 aiowmi==0.2.2
-libprobe==0.2.20
+libprobe==0.2.21
