@@ -1,5 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..utils import get_state
 from ..values import DRIVE_TYPES
 from ..wmiquery import wmiconn, wmiquery, wmiclose
@@ -48,17 +49,18 @@ async def check_storage(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, PHYSICAL_QUERY)
-        state = get_state(PHYSICAL_TYPE, rows)
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, PHYSICAL_QUERY)
+            state = get_state(PHYSICAL_TYPE, rows)
 
-        rows = await wmiquery(conn, service, LOGICAL_QUERY)
-        state.update(get_state(LOGICAL_TYPE, rows))
+            rows = await wmiquery(conn, service, LOGICAL_QUERY)
+            state.update(get_state(LOGICAL_TYPE, rows))
 
-        rows = await wmiquery(conn, service, VOLUME_QUERY)
-        state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
-    finally:
-        wmiclose(conn, service)
+            rows = await wmiquery(conn, service, VOLUME_QUERY)
+            state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
+        finally:
+            wmiclose(conn, service)
 
-    return state
+        return state

@@ -2,6 +2,7 @@ import datetime
 import time
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..utils import get_state, get_state_total
 
@@ -72,19 +73,20 @@ async def check_system(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, SYSTEM_QUERY)
-        state = get_state(SYSTEM_TYPE, rows, on_item)
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, SYSTEM_QUERY)
+            state = get_state(SYSTEM_TYPE, rows, on_item)
 
-        rows = await wmiquery(conn, service, TIME_QUERY)
-        state.update(get_state(TIME_TYPE, rows, on_item_time))
+            rows = await wmiquery(conn, service, TIME_QUERY)
+            state.update(get_state(TIME_TYPE, rows, on_item_time))
 
-        rows = await wmiquery(conn, service, OS_QUERY)
-        state.update(get_state(OS_TYPE, rows, on_item_os))
+            rows = await wmiquery(conn, service, OS_QUERY)
+            state.update(get_state(OS_TYPE, rows, on_item_os))
 
-        rows = await wmiquery(conn, service, PROCESSOR_QUERY)
-        state.update(get_state_total(PROCESSOR_TYPE, rows))
-    finally:
-        wmiclose(conn, service)
-    return state
+            rows = await wmiquery(conn, service, PROCESSOR_QUERY)
+            state.update(get_state_total(PROCESSOR_TYPE, rows))
+        finally:
+            wmiclose(conn, service)
+        return state

@@ -1,5 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import (
@@ -54,16 +55,17 @@ async def check_network(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, ADAPTER_QUERY)
-        state = get_state(ADAPTER_TYPE, rows, on_item_adapter)
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, ADAPTER_QUERY)
+            state = get_state(ADAPTER_TYPE, rows, on_item_adapter)
 
-        rows = await wmiquery(conn, service, INTERFACE_QUERY)
-        state.update(get_state(INTERFACE_TYPE, rows))
+            rows = await wmiquery(conn, service, INTERFACE_QUERY)
+            state.update(get_state(INTERFACE_TYPE, rows))
 
-        rows = await wmiquery(conn, service, ROUTE_QUERY)
-        state.update(get_state(ROUTE_TYPE, rows, on_item_route))
-    finally:
-        wmiclose(conn, service)
-    return state
+            rows = await wmiquery(conn, service, ROUTE_QUERY)
+            state.update(get_state(ROUTE_TYPE, rows, on_item_route))
+        finally:
+            wmiclose(conn, service)
+        return state

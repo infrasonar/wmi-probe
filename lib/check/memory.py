@@ -1,8 +1,8 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
-
 
 TYPE_NAME = "memory"
 QUERY = Query("""
@@ -41,20 +41,21 @@ async def check_memory(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, QUERY)
-        state = get_state(TYPE_NAME, rows, on_item)
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, QUERY)
+            state = get_state(TYPE_NAME, rows, on_item)
 
-        rows = await wmiquery(conn, service, PAGEFILE_QUERY)
-        state.update(get_state(PAGEFILE_TYPE, rows, on_item_pagefile))
-    finally:
-        wmiclose(conn, service)
+            rows = await wmiquery(conn, service, PAGEFILE_QUERY)
+            state.update(get_state(PAGEFILE_TYPE, rows, on_item_pagefile))
+        finally:
+            wmiclose(conn, service)
 
-    total = on_item_pagefile({
-        'Name': 'total',
-        'AllocatedBaseSize': sum(itm['AllocatedBaseSize'] for itm in rows),
-        'CurrentUsage': sum(itm['CurrentUsage'] for itm in rows),
-    })
-    state[f"{PAGEFILE_TYPE}Total"] = [total]
-    return state
+        total = on_item_pagefile({
+            'Name': 'total',
+            'AllocatedBaseSize': sum(itm['AllocatedBaseSize'] for itm in rows),
+            'CurrentUsage': sum(itm['CurrentUsage'] for itm in rows),
+        })
+        state[f"{PAGEFILE_TYPE}Total"] = [total]
+        return state

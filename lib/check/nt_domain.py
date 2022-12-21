@@ -1,5 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
@@ -23,10 +24,11 @@ async def check_nt_domain(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, QUERY)
-        state = get_state(TYPE_NAME, rows, on_item)
-    finally:
-        wmiclose(conn, service)
-    return state
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, QUERY)
+            state = get_state(TYPE_NAME, rows, on_item)
+        finally:
+            wmiclose(conn, service)
+        return state

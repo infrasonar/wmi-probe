@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
@@ -33,26 +34,27 @@ async def check_users(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, REMOTE_USERS_QUERY)
-        state = {
-            REMOTE_USERS_TYPE: [{
-                'name': REMOTE_USERS_TYPE,
-                'Count': len(rows) - 1,
-            }]
-        }
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, REMOTE_USERS_QUERY)
+            state = {
+                REMOTE_USERS_TYPE: [{
+                    'name': REMOTE_USERS_TYPE,
+                    'Count': len(rows) - 1,
+                }]
+            }
 
-        rows = await wmiquery(conn, service, LOGGED_ON_QUERY)
-        name_login = defaultdict(int)
-        for itm in rows:
-            name = get_itemname(itm)
-            name_login[name] += 1
+            rows = await wmiquery(conn, service, LOGGED_ON_QUERY)
+            name_login = defaultdict(int)
+            for itm in rows:
+                name = get_itemname(itm)
+                name_login[name] += 1
 
-        state[LOGGED_ON_TYPE] = [{
-            'name': name,
-            'SessionCount': count
-        } for name, count in name_login.items()]
-    finally:
-        wmiclose(conn, service)
-    return state
+            state[LOGGED_ON_TYPE] = [{
+                'name': name,
+                'SessionCount': count
+            } for name, count in name_login.items()]
+        finally:
+            wmiclose(conn, service)
+        return state

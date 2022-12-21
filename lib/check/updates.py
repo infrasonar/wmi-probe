@@ -1,5 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from .asset_lock import get_asset_lock
 from ..utils import get_state, parse_wmi_date, parse_wmi_date_1600
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
@@ -32,22 +33,22 @@ async def check_updates(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
+    async with get_asset_lock(asset):
+        conn, service = await wmiconn(asset, asset_config, check_config)
+        try:
+            rows = await wmiquery(conn, service, QUERY)
+        finally:
+            wmiclose(conn, service)
 
-    conn, service = await wmiconn(asset, asset_config, check_config)
-    try:
-        rows = await wmiquery(conn, service, QUERY)
-    finally:
-        wmiclose(conn, service)
+        state = get_state(TYPE_NAME, rows, on_item)
+        last = None
+        for itm in state[TYPE_NAME]:
+            if itm['InstalledOn'] and (
+                not last or itm['InstalledOn'] > last['InstalledOn']
+            ):
+                last = itm
 
-    state = get_state(TYPE_NAME, rows, on_item)
-    last = None
-    for itm in state[TYPE_NAME]:
-        if itm['InstalledOn'] and (
-            not last or itm['InstalledOn'] > last['InstalledOn']
-        ):
-            last = itm
+        if last:
+            state['last'] = [last]
 
-    if last:
-        state['last'] = [last]
-
-    return state
+        return state
