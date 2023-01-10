@@ -65,7 +65,8 @@ async def wmiconn(
 async def wmiquery(
         conn: Connection,
         service: Service,
-        query: Query) -> List[dict]:
+        query: Query,
+        keep_ref: bool = False) -> List[dict]:
     rows = []
 
     try:
@@ -73,7 +74,9 @@ async def wmiquery(
             async for props in qc.results():
                 row = {}
                 for name, prop in props.items():
-                    if prop.value is None:
+                    if keep_ref and prop.is_reference():
+                        row[name] = prop
+                    elif prop.value is None:
                         row[name] = DTYPS_NOT_NULL.get(prop.get_type())
                     elif isinstance(prop.value, datetime.datetime):
                         row[name] = prop.value.timestamp()

@@ -1,5 +1,8 @@
+import logging
 from aiowmi.query import Query
+from aiowmi.ndr.property_info import PropertyInfo
 from libprobe.asset import Asset
+from libprobe.exceptions import CheckException
 from .asset_lock import get_asset_lock
 from ..utils import get_state
 from ..values import DRIVE_TYPES, AVAILABILITY_STATUS
@@ -31,6 +34,12 @@ VOLUME_QUERY = Query("""
     SerialNumber, SupportsDiskQuotas, SupportsFileBasedCompression
     FROM Win32_Volume  WHERE Name != "_Total" AND DriveType != 5
 """)
+SHADOW_TYPE = "shadow"
+SHADOW_QUERY = Query("""
+    SELECT
+    Volume, MaxSpace, AllocatedSpace, UsedSpace
+    FROM Win32_ShadowStorage
+""")
 
 
 def on_item_volume(itm: dict) -> dict:
@@ -45,6 +54,23 @@ def on_item_volume(itm: dict) -> dict:
     itm['DriveType'] = DRIVE_TYPES.get(itm['DriveType'], 'Unknown')
     itm['PercentUsed'] = pct
     return itm
+
+
+async def volume_ref(
+        conn: Connection,
+        service: Service,
+        row: dict):
+    prop: PropertyInfo = row['Volume']
+    try:
+        res = await prop.get_reference(conn, service, filter_props=['Name'])
+        ref_props = res.get_properties()
+        row['Volume'] = ref_props['Name'].value
+    except Exception as e:
+        error_msg = str(e) or type(e).__name__
+        # At this point log the exception as this can be useful for debugging
+        # issues with WMI queries;
+        logging.exception(f'query error: {error_msg};')
+        raise CheckException(error_msg)
 
 
 async def check_storage(
@@ -62,6 +88,11 @@ async def check_storage(
 
             rows = await wmiquery(conn, service, VOLUME_QUERY)
             state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
+
+            rows = await wmiquery(conn, service, SHADOW_QUERY, keep_ref=True)
+            for row in rows:
+                await volume_ref(conn, service, row)
+            state.update(get_state(SHADOW_TYPE, rows, on_item_volume))
         finally:
             wmiclose(conn, service)
 
