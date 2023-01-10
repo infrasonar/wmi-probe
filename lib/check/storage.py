@@ -40,7 +40,7 @@ def on_item_volume(itm: dict) -> dict:
     pct = 100. * used / total if total else 0.
 
     itm['name'] = itm.pop('Name')
-    itm['DriveType'] = DRIVE_TYPES.get(itm['DriveType'])
+    itm['DriveType'] = DRIVE_TYPES.get(itm['DriveType'], 'Unknown')
     itm['PercentUsed'] = pct
     return itm
 
