@@ -2,7 +2,7 @@ from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
 from ..utils import get_state
-from ..values import DRIVE_TYPES
+from ..values import DRIVE_TYPES, AVAILABILITY_STATUS
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
@@ -25,11 +25,11 @@ LOGICAL_QUERY = Query("""
 VOLUME_TYPE = "volume"
 VOLUME_QUERY = Query("""
     SELECT
-    Name, Automount, Capacity, Compressed, DeviceID, DirtyBitSet, DriveLetter,
-    DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
+    Name, Automount, Availability, Capacity, Compressed, DeviceID, DirtyBitSet,
+    DriveLetter, DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
     MaximumFileNameLength, QuotasEnabled, QuotasIncomplete, QuotasRebuilding,
     SerialNumber, SupportsDiskQuotas, SupportsFileBasedCompression
-    FROM Win32_Volume  WHERE Name != "_Total"
+    FROM Win32_Volume  WHERE Name != "_Total" AND DriveType != 5
 """)
 
 
@@ -40,6 +40,8 @@ def on_item_volume(itm: dict) -> dict:
     pct = 100. * used / total if total else 0.
 
     itm['name'] = itm.pop('Name')
+    itm['Availability'] = \
+        AVAILABILITY_STATUS.get(itm['Availability'], 'Unknown')
     itm['DriveType'] = DRIVE_TYPES.get(itm['DriveType'], 'Unknown')
     itm['PercentUsed'] = pct
     return itm
