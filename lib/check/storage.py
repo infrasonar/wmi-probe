@@ -60,11 +60,13 @@ async def volume_ref(
         conn: Connection,
         service: Service,
         row: dict):
-    prop: PropertyInfo = row['Volume']
+    # Volume Name is expected to be unique and can therfore be used as
+    # item name
+    prop: PropertyInfo = row.pop('Volume')
     try:
         res = await prop.get_reference(conn, service, filter_props=['Name'])
         ref_props = res.get_properties()
-        row['Volume'] = ref_props['Name'].value
+        row['name'] = ref_props['Name'].value
     except Exception as e:
         error_msg = str(e) or type(e).__name__
         # At this point log the exception as this can be useful for debugging
@@ -92,7 +94,7 @@ async def check_storage(
             rows = await wmiquery(conn, service, SHADOW_QUERY, keep_ref=True)
             for row in rows:
                 await volume_ref(conn, service, row)
-            state.update(get_state(SHADOW_TYPE, rows, on_item_volume))
+            state.update({SHADOW_TYPE: rows})
         finally:
             wmiclose(conn, service)
 
