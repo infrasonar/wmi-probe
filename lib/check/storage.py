@@ -1,6 +1,8 @@
 import logging
 from aiowmi.query import Query
 from aiowmi.ndr.property_info import PropertyInfo
+from aiowmi.connection import Connection
+from aiowmi.connection import Protocol as Service
 from libprobe.asset import Asset
 from libprobe.exceptions import CheckException
 from .asset_lock import get_asset_lock
@@ -93,7 +95,6 @@ async def check_storage(
 
             rows = await wmiquery(conn, service, SHADOW_QUERY, keep_ref=True)
             if rows:
-                # Optional type
                 for row in rows:
                     await volume_ref(conn, service, row)
                 state.update({SHADOW_TYPE: rows})
