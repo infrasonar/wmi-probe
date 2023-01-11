@@ -12,8 +12,8 @@ INSTALLED_QUERY = Query("""
     Vendor, Version
     FROM Win32_Product
 """)
-FEATURES_TYPE_NAME = "features"
-FEATURES_QUERY = Query("""
+FEATURE_TYPE_NAME = "feature"
+FEATURE_QUERY = Query("""
     SELECT
     Name
     FROM Win32_ServerFeature
@@ -51,9 +51,9 @@ async def check_software(
             rows = await wmiquery(conn, service, INSTALLED_QUERY)
             state = get_state(INSTALLED_TYPE_NAME, rows, on_item)
 
-            rows = await wmiquery(conn, service, FEATURES_QUERY)
+            rows = await wmiquery(conn, service, FEATURE_QUERY)
             if rows:
-                state.update(get_state(FEATURES_TYPE_NAME, rows))
+                state.update(get_state(FEATURE_TYPE_NAME, rows))
         finally:
             wmiclose(conn, service)
         return state
