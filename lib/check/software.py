@@ -5,12 +5,18 @@ from ..utils import get_state, parse_wmi_date
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import INSTALL_STATES_LU, LANGUAGE_NAMES
 
-TYPE_NAME = "installed"
-QUERY = Query("""
+INSTALLED_TYPE_NAME = "installed"
+INSTALLED_QUERY = Query("""
     SELECT
     Description, InstallDate, InstallDate2, InstallState, Name, PackageCode,
     Vendor, Version
     FROM Win32_Product
+""")
+FEATURES_TYPE_NAME = "features"
+FEATURES_QUERY = Query("""
+    SELECT
+    Name
+    FROM Win32_ServerFeature
 """)
 
 
@@ -42,8 +48,12 @@ async def check_software(
     async with get_asset_lock(asset):
         conn, service = await wmiconn(asset, asset_config, check_config)
         try:
-            rows = await wmiquery(conn, service, QUERY)
-            state = get_state(TYPE_NAME, rows, on_item)
+            rows = await wmiquery(conn, service, INSTALLED_QUERY)
+            state = get_state(INSTALLED_TYPE_NAME, rows, on_item)
+
+            rows = await wmiquery(conn, service, FEATURES_QUERY)
+            if rows:
+                state.update(get_state(FEATURES_TYPE_NAME, rows))
         finally:
             wmiclose(conn, service)
         return state

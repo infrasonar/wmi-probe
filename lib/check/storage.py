@@ -92,9 +92,11 @@ async def check_storage(
             state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
 
             rows = await wmiquery(conn, service, SHADOW_QUERY, keep_ref=True)
-            for row in rows:
-                await volume_ref(conn, service, row)
-            state.update({SHADOW_TYPE: rows})
+            if rows:
+                # Optional type
+                for row in rows:
+                    await volume_ref(conn, service, row)
+                state.update({SHADOW_TYPE: rows})
         finally:
             wmiclose(conn, service)
 
