@@ -7,7 +7,7 @@ from libprobe.asset import Asset
 from libprobe.exceptions import CheckException
 from .asset_lock import get_asset_lock
 from ..utils import get_state
-from ..values import DRIVE_TYPES, AVAILABILITY_STATUS
+from ..values import DRIVE_TYPES
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
@@ -30,7 +30,7 @@ LOGICAL_QUERY = Query("""
 VOLUME_TYPE = "volume"
 VOLUME_QUERY = Query("""
     SELECT
-    Name, Automount, Availability, Capacity, Compressed, DeviceID, DirtyBitSet,
+    Name, Automount, Capacity, Compressed, DeviceID, DirtyBitSet,
     DriveLetter, DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
     MaximumFileNameLength, QuotasEnabled, QuotasIncomplete, QuotasRebuilding,
     SerialNumber, SupportsDiskQuotas, SupportsFileBasedCompression
@@ -51,8 +51,6 @@ def on_item_volume(itm: dict) -> dict:
     pct = 100. * used / total if total else 0.
 
     itm['name'] = itm.pop('Name')
-    itm['Availability'] = \
-        AVAILABILITY_STATUS.get(itm['Availability'], 'Unknown')
     itm['DriveType'] = DRIVE_TYPES.get(itm['DriveType'], 'Unknown')
     itm['PercentUsed'] = pct
     return itm
@@ -61,10 +59,10 @@ def on_item_volume(itm: dict) -> dict:
 async def volume_ref(
         conn: Connection,
         service: Service,
+        prop: PropertyInfo,
         row: dict):
     # Volume Name is expected to be unique and can therfore be used as
     # item name
-    prop: PropertyInfo = row.pop('Volume')
     try:
         res = await prop.get_reference(conn, service, filter_props=['Name'])
         ref_props = res.get_properties()
@@ -93,11 +91,9 @@ async def check_storage(
             rows = await wmiquery(conn, service, VOLUME_QUERY)
             state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
 
-            rows = await wmiquery(conn, service, SHADOW_QUERY, keep_ref=True)
-            if rows:
-                for row in rows:
-                    await volume_ref(conn, service, row)
-                state.update({SHADOW_TYPE: rows})
+            refs = {'Volume': volume_ref}
+            rows = await wmiquery(conn, service, SHADOW_QUERY, refs=refs)
+            state.update({SHADOW_TYPE: rows})
         finally:
             wmiclose(conn, service)
 

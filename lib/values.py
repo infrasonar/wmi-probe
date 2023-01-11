@@ -335,29 +335,6 @@ NET_CONN_STATUS = {
     12: 'Credentials Required',
 }  # 13..X  Other
 
-AVAILABILITY_STATUS = {
-    1: 'Other',
-    2: 'Unknown',
-    3: 'Running or Full Power',
-    4: 'Warning',
-    5: 'In Test',
-    6: 'Not Applicable',
-    7: 'Power Off',
-    8: 'Offline',
-    9: 'Off Duty',
-    10:	'Degraded',
-    11:	'Not Installed',
-    12:	'Install Error',
-    13:	'Power Save - Unknown',
-    14:	'Power Save - Low Power Mode',
-    15:	'Power Save - Standby',
-    16: 'Power Cycle',
-    17: 'Power Save - Warning',
-    18: 'Paused',
-    19: 'Not Ready',
-    20: 'Not Configured',
-    21: 'Quiesced',
-}
 
 SHARE_TYPE = {
     0: 'Disk Drive',

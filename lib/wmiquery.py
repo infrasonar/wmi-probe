@@ -10,7 +10,7 @@ from aiowmi.query import Query
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 
 DTYPS_NOT_NULL = {
@@ -66,7 +66,7 @@ async def wmiquery(
         conn: Connection,
         service: Service,
         query: Query,
-        keep_ref: bool = False) -> List[dict]:
+        refs: Optional[dict] = False) -> List[dict]:
     rows = []
 
     try:
@@ -74,8 +74,8 @@ async def wmiquery(
             async for props in qc.results():
                 row = {}
                 for name, prop in props.items():
-                    if keep_ref and prop.is_reference():
-                        row[name] = prop
+                    if refs and name in refs and prop.is_reference():
+                        await refs[name](conn, service, prop, row)
                     elif prop.value is None:
                         row[name] = DTYPS_NOT_NULL.get(prop.get_type())
                     elif isinstance(prop.value, datetime.datetime):
