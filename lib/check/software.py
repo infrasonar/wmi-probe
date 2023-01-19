@@ -20,7 +20,7 @@ FEATURE_QUERY = Query("""
 """)
 
 
-def on_item(itm: dict) -> dict:
+def on_installed(itm: dict) -> dict:
     try:
         language = int(itm['Language'])
         language_name = LANGUAGE_NAMES.get(language, language)
@@ -41,6 +41,14 @@ def on_item(itm: dict) -> dict:
     }
 
 
+def on_feature(itm: dict) -> dict:
+    """Feature names might include non-ascii compatible characters.
+    The best we can do is to replace those with a question mark (?) using
+    the error 'replace' option."""
+    itm['name'] = itm.pop('Name').encode('ascii', errors='replace').decode()
+    return itm
+
+
 async def check_software(
         asset: Asset,
         asset_config: dict,
@@ -49,11 +57,11 @@ async def check_software(
         conn, service = await wmiconn(asset, asset_config, check_config)
         try:
             rows = await wmiquery(conn, service, INSTALLED_QUERY)
-            state = get_state(INSTALLED_TYPE_NAME, rows, on_item)
+            state = get_state(INSTALLED_TYPE_NAME, rows, on_installed)
 
             rows = await wmiquery(conn, service, FEATURE_QUERY)
             if rows:
-                state.update(get_state(FEATURE_TYPE_NAME, rows))
+                state.update(get_state(FEATURE_TYPE_NAME, rows, on_feature))
         finally:
             wmiclose(conn, service)
         return state
