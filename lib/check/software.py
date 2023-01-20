@@ -1,6 +1,7 @@
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from libprobe.exceptions import IgnoreCheckException
 from .asset_lock import get_asset_lock
 from ..utils import get_state, parse_wmi_date
 from ..wmiquery import wmiconn, wmiquery, wmiclose
