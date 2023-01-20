@@ -1,3 +1,4 @@
+import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
@@ -59,9 +60,14 @@ async def check_software(
             rows = await wmiquery(conn, service, INSTALLED_QUERY)
             state = get_state(INSTALLED_TYPE_NAME, rows, on_installed)
 
-            rows = await wmiquery(conn, service, FEATURE_QUERY)
-            if rows:
-                state.update(get_state(FEATURE_TYPE_NAME, rows, on_feature))
+            try:
+                rows = await wmiquery(conn, service, FEATURE_QUERY)
+            except IgnoreCheckException:
+                logging.debug(f'failed to query Win32_ServerFeature; {asset}')
+            else:
+                if rows:
+                    state.update(
+                        get_state(FEATURE_TYPE_NAME, rows, on_feature))
         finally:
             wmiclose(conn, service)
         return state
