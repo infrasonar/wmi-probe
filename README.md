@@ -22,3 +22,42 @@ Variable            | Default                        | Description
 ```
 docker build -t wmi-probe . --no-cache
 ```
+
+## Config
+
+```yaml
+vcenter:
+  config:
+    username: "my_account@domain"
+    password: "my_password"
+```
+
+## Dry run
+
+Available checks:
+- `memory`
+- `network`
+- `ntDomain`
+- `process`
+- `services`
+- `software`
+- `storage`
+- `system`
+- `updates`
+- `users`
+
+Create a yaml file, for example _(test.yaml)_:
+
+```yaml
+asset:
+  name: "foo.local"
+  check: "system"
+  config:
+    address: "192.168.1.2"
+```
+
+Run the probe with the `DRY_RUN` environment variable set the the yaml file above.
+
+```
+DRY_RUN=test.yaml python main.py
+```
