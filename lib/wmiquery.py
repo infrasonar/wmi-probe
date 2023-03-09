@@ -19,6 +19,7 @@ DTYPS_NOT_NULL = {
     float: 0.,
     list: [],
 }
+QUERY_TIMEOUT = 120
 
 
 async def wmiconn(
@@ -70,7 +71,7 @@ async def wmiquery(
     rows = []
 
     try:
-        async with query.context(conn, service) as qc:
+        async with query.context(conn, service, timeout=QUERY_TIMEOUT) as qc:
             async for props in qc.results():
                 row = {}
                 for name, prop in props.items():
