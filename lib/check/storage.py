@@ -4,7 +4,8 @@ from aiowmi.ndr.property_info import PropertyInfo
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from libprobe.asset import Asset
-from libprobe.exceptions import CheckException
+from libprobe.severity import Severity
+from libprobe.exceptions import CheckException, IncompleteResultException
 from .asset_lock import get_asset_lock
 from ..utils import get_state
 from ..values import DRIVE_TYPES
@@ -91,9 +92,23 @@ async def check_storage(
             rows = await wmiquery(conn, service, VOLUME_QUERY)
             state.update(get_state(VOLUME_TYPE, rows, on_item_volume))
 
-            refs = {'Volume': volume_ref}
-            rows = await wmiquery(conn, service, SHADOW_QUERY, refs=refs)
-            state.update({SHADOW_TYPE: rows})
+            # At least one asset returns with a time-out on the shadow volume
+            # query and therefore we ignore the type in the result. (issue #6)
+            try:
+                refs = {'Volume': volume_ref}
+                rows = await wmiquery(
+                    conn,
+                    service,
+                    SHADOW_QUERY,
+                    refs=refs,
+                    timeout=20)
+                state.update({SHADOW_TYPE: rows})
+            except (Exception, TimeoutError) as e:
+                msg = str(e) or type(e).__name__
+                raise IncompleteResultException(
+                    f'failed to read shadow storage: {msg}',
+                    result=state,
+                    severity=Severity.LOW)
         finally:
             wmiclose(conn, service)
 

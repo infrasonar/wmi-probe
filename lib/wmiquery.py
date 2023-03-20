@@ -67,11 +67,12 @@ async def wmiquery(
         conn: Connection,
         service: Service,
         query: Query,
-        refs: Optional[dict] = False) -> List[dict]:
+        refs: Optional[dict] = False,
+        timeout=QUERY_TIMEOUT) -> List[dict]:
     rows = []
 
     try:
-        async with query.context(conn, service, timeout=QUERY_TIMEOUT) as qc:
+        async with query.context(conn, service, timeout=timeout) as qc:
             async for props in qc.results():
                 row = {}
                 for name, prop in props.items():
