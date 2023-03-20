@@ -34,7 +34,7 @@ VOLUME_QUERY = Query("""
     DriveLetter, DriveType, FileSystem, FreeSpace, IndexingEnabled, Label,
     MaximumFileNameLength, QuotasEnabled, QuotasIncomplete, QuotasRebuilding,
     SerialNumber, SupportsDiskQuotas, SupportsFileBasedCompression
-    FROM Win32_Volume  WHERE Name != "_Total" AND DriveType != 5
+    FROM Win32_Volume WHERE Name != "_Total" AND DriveType != 5
 """)
 SHADOW_TYPE = "shadow"
 SHADOW_QUERY = Query("""
