@@ -10,8 +10,8 @@ from ..utils import get_state, get_state_total
 SYSTEM_TYPE = "system"
 SYSTEM_QUERY = Query("""
     SELECT
-    Processes, SystemUpTime
-    FROM Win32_PerfFormattedData_PerfOS_System
+    Processes, SystemUpTime, Frequency_Object, Timestamp_Object
+    FROM Win32_PerfRawData_PerfOS_System
 """)
 TIME_TYPE = "time"
 TIME_QUERY = Query("""
@@ -36,7 +36,10 @@ PROCESSOR_QUERY = Query("""
 def on_item(itm: dict) -> dict:
     return {
         'name': SYSTEM_TYPE,
-        **itm,
+        'Processes': itm['Processes'],
+        'SystemUpTime': int(
+            (itm['Timestamp_Object'] - itm['SystemUpTime'])
+            / itm['Frequency_Object']),
     }
 
 

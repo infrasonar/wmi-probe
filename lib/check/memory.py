@@ -7,8 +7,9 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 TYPE_NAME = "memory"
 QUERY = Query("""
     SELECT
-    CommitLimit, CommittedBytes, PercentCommittedBytesInUse
-    FROM Win32_PerfFormattedData_PerfOS_Memory
+    CommitLimit, CommittedBytes, PercentCommittedBytesInUse,
+    PercentCommittedBytesInUse_Base
+    FROM Win32_PerfRawData_PerfOS_Memory
 """)
 PAGEFILE_TYPE = "pageFile"
 PAGEFILE_QUERY = Query("""
@@ -20,6 +21,9 @@ PAGEFILE_QUERY = Query("""
 
 def on_item(itm: dict) -> dict:
     itm['name'] = TYPE_NAME
+    itm['PercentCommittedBytesInUse'] = int(
+        itm['PercentCommittedBytesInUse'] /
+        itm.pop('PercentCommittedBytesInUse_Base'))
     return itm
 
 
