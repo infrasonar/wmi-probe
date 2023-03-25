@@ -3,6 +3,7 @@ import time
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
+from ..counters import on_counters
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..utils import get_state, get_state_total
 
@@ -30,6 +31,13 @@ PROCESSOR_QUERY = Query("""
     SELECT
     Name, PercentProcessorTime
     FROM Win32_PerfFormattedData_PerfOS_Processor
+""")
+CACHE = {}
+PROCESSOR_TYPE_RAW = "processorCounters"
+PROCESSOR_QUERY_RAW = Query("""
+    SELECT
+    Name, Timestamp_Sys100NS, PercentProcessorTime
+    FROM Win32_PerfRawData_PerfOS_Processor
 """)
 
 
@@ -90,6 +98,17 @@ async def check_system(
 
             rows = await wmiquery(conn, service, PROCESSOR_QUERY)
             state.update(get_state_total(PROCESSOR_TYPE, rows))
+
+            rows = await wmiquery(conn, service, PROCESSOR_QUERY_RAW)
+            rows_lk = {i['Name']: i for i in rows}
+            prev = CACHE.get(asset.id)
+            CACHE[asset.id] = rows_lk
+            if prev:
+                ct, ct_total = on_counters(rows_lk, prev, {
+                    'PercentProcessorTime': 'PERF_100NSEC_TIMER_INV',
+                })
+                state[PROCESSOR_TYPE_RAW] = [ct]
+                state[f'{PROCESSOR_TYPE_RAW}Total'] = [ct_total]
         finally:
             wmiclose(conn, service)
         return state

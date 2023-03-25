@@ -1,6 +1,7 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
+from ..counters import on_counters
 from ..utils import get_state
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..values import (
@@ -25,6 +26,16 @@ INTERFACE_QUERY = Query("""
     PacketsOutboundDiscarded, PacketsOutboundErrors, PacketsReceivedDiscarded,
     PacketsReceivedErrors, OutputQueueLength
     FROM Win32_PerfFormattedData_Tcpip_NetworkInterface
+""")
+CACHE = {}
+INTERFACE_TYPE_RAW = "interfaceCounters"
+INTERFACE_QUERY_RAW = Query("""
+    SELECT
+    BytesReceivedPersec, BytesSentPersec, CurrentBandwidth, Name,
+    PacketsOutboundDiscarded, PacketsOutboundErrors, PacketsReceivedDiscarded,
+    PacketsReceivedErrors, OutputQueueLength,
+    Frequency_PerfTime, Timestamp_PerfTime
+    FROM Win32_PerfRawData_Tcpip_NetworkInterface
 """)
 ROUTE_TYPE = "route"
 ROUTE_QUERY = Query("""
@@ -66,6 +77,17 @@ async def check_network(
 
             rows = await wmiquery(conn, service, ROUTE_QUERY)
             state.update(get_state(ROUTE_TYPE, rows, on_item_route))
+
+            rows = await wmiquery(conn, service, INTERFACE_QUERY_RAW)
+            rows_lk = {i['Name']: i for i in rows}
+            prev = CACHE.get(asset.id)
+            CACHE[asset.id] = rows_lk
+            if prev:
+                ct, _ = on_counters(rows_lk, prev, {
+                    'BytesReceivedPersec': 'PERF_COUNTER_BULK_COUNT',
+                    'BytesSentPersec': 'PERF_COUNTER_BULK_COUNT',
+                })
+                state[INTERFACE_TYPE_RAW] = [ct]
         finally:
             wmiclose(conn, service)
         return state
