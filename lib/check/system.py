@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import time
 from aiowmi.query import Query
@@ -101,14 +102,21 @@ async def check_system(
 
             rows = await wmiquery(conn, service, PROCESSOR_QUERY_RAW)
             rows_lk = {i['Name']: i for i in rows}
-            prev = CACHE.get(asset.id)
-            CACHE[asset.id] = rows_lk
-            if prev:
-                ct, ct_total = on_counters(rows_lk, prev, {
-                    'PercentProcessorTime': 'PERF_100NSEC_TIMER_INV',
-                })
-                state[PROCESSOR_TYPE_RAW] = [ct]
-                state[f'{PROCESSOR_TYPE_RAW}Total'] = [ct_total]
+            if asset.id in CACHE:
+                prev = CACHE.get(asset.id)
+                CACHE[asset.id] = rows_lk
+            else:
+                prev = rows_lk
+                await asyncio.sleep(5)
+                rows = await wmiquery(conn, service, PROCESSOR_QUERY_RAW)
+                rows_lk = {i['Name']: i for i in rows}
+                CACHE[asset.id] = rows_lk
+
+            ct, ct_total = on_counters(rows_lk, prev, {
+                'PercentProcessorTime': 'PERF_100NSEC_TIMER_INV',
+            })
+            state[PROCESSOR_TYPE_RAW] = ct
+            state[f'{PROCESSOR_TYPE_RAW}Total'] = ct_total
         finally:
             wmiclose(conn, service)
         return state

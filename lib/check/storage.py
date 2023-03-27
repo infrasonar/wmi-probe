@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from aiowmi.query import Query
 from aiowmi.ndr.property_info import PropertyInfo
@@ -29,7 +30,8 @@ PHYSICAL_QUERY_RAW = Query("""
     Name, AvgDiskReadQueueLength, AvgDiskWriteQueueLength,
     DiskReadBytesPersec, DiskReadsPersec,
     DiskWriteBytesPersec, DiskWritesPersec, PercentDiskReadTime,
-    PercentDiskWriteTime, Frequency_PerfTime, Timestamp_PerfTime
+    PercentDiskWriteTime, Frequency_PerfTime, Timestamp_PerfTime,
+    Timestamp_Sys100NS
     FROM Win32_PerfRawData_PerfDisk_PhysicalDisk WHERE Name != "_Total"
 """)
 LOGICAL_TYPE = "logical"
@@ -43,7 +45,8 @@ LOGICAL_CACHE = {}
 LOGICAL_TYPE_RAW = "logicalCounters"
 LOGICAL_QUERY_RAW = Query("""
     SELECT
-    Name, DiskReadsPersec, DiskWritesPersec
+    Name, DiskReadsPersec, DiskWritesPersec, 
+    Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_PerfDisk_LogicalDisk
     WHERE Name != "_Total"
 """)
@@ -131,32 +134,46 @@ async def check_storage(
 
             rows = await wmiquery(conn, service, PHYSICAL_QUERY_RAW)
             rows_lk = {i['Name']: i for i in rows}
-            prev = PHYSICAL_CACHE.get(asset.id)
-            PHYSICAL_CACHE[asset.id] = rows_lk
-            if prev:
-                ct, _ = on_counters(rows_lk, prev, {
-                    'AvgDiskReadQueueLength':
-                        'PERF_COUNTER_100NS_QUEUELEN_TYPE',
-                    'AvgDiskWriteQueueLength':
-                        'PERF_COUNTER_100NS_QUEUELEN_TYPE',
-                    'DiskReadBytesPersec': 'PERF_COUNTER_BULK_COUNT',
-                    'DiskReadsPersec': 'PERF_COUNTER_COUNTER',
-                    'DiskWriteBytesPersec': 'PERF_COUNTER_BULK_COUNT',
-                    'DiskWritesPersec': 'PERF_COUNTER_COUNTER',
-                    'PercentDiskReadTime': 'PERF_PRECISION_100NS_TIMER',
-                })
-                state[PHYSICAL_TYPE_RAW] = [ct]
+            if asset.id in PHYSICAL_CACHE:
+                prev = PHYSICAL_CACHE.get(asset.id)
+                PHYSICAL_CACHE[asset.id] = rows_lk
+            else:
+                prev = rows_lk
+                await asyncio.sleep(5)
+                rows = await wmiquery(conn, service, PHYSICAL_QUERY_RAW)
+                rows_lk = {i['Name']: i for i in rows}
+                PHYSICAL_CACHE[asset.id] = rows_lk
+
+            ct, _ = on_counters(rows_lk, prev, {
+                'AvgDiskReadQueueLength':
+                    'PERF_COUNTER_100NS_QUEUELEN_TYPE',
+                'AvgDiskWriteQueueLength':
+                    'PERF_COUNTER_100NS_QUEUELEN_TYPE',
+                'DiskReadBytesPersec': 'PERF_COUNTER_BULK_COUNT',
+                'DiskReadsPersec': 'PERF_COUNTER_COUNTER',
+                'DiskWriteBytesPersec': 'PERF_COUNTER_BULK_COUNT',
+                'DiskWritesPersec': 'PERF_COUNTER_COUNTER',
+                'PercentDiskReadTime': 'PERF_PRECISION_100NS_TIMER',
+            })
+            state[PHYSICAL_TYPE_RAW] = ct
 
             rows = await wmiquery(conn, service, LOGICAL_QUERY_RAW)
             rows_lk = {i['Name']: i for i in rows}
-            prev = LOGICAL_CACHE.get(asset.id)
-            LOGICAL_CACHE[asset.id] = rows_lk
-            if prev:
-                ct, _ = on_counters(rows_lk, prev, {
-                    'DiskReadsPersec': 'PERF_COUNTER_COUNTER',
-                    'DiskWritesPersec': 'PERF_COUNTER_COUNTER',
-                })
-                state[LOGICAL_TYPE_RAW] = [ct]
+            if asset.id in LOGICAL_CACHE:
+                prev = LOGICAL_CACHE.get(asset.id)
+                LOGICAL_CACHE[asset.id] = rows_lk
+            else:
+                prev = rows_lk
+                await asyncio.sleep(5)
+                rows = await wmiquery(conn, service, LOGICAL_QUERY_RAW)
+                rows_lk = {i['Name']: i for i in rows}
+                LOGICAL_CACHE[asset.id] = rows_lk
+
+            ct, _ = on_counters(rows_lk, prev, {
+                'DiskReadsPersec': 'PERF_COUNTER_COUNTER',
+                'DiskWritesPersec': 'PERF_COUNTER_COUNTER',
+            })
+            state[LOGICAL_TYPE_RAW] = ct
 
         finally:
             wmiclose(conn, service)

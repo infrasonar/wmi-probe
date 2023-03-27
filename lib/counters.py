@@ -5,24 +5,36 @@ def perf_elapsed_time(name: str, itm: dict, prev_itm: dict) -> dict:
 def perf_100nsec_timer_inv(name: str, itm: dict, prev_itm: dict) -> dict:
     dx = itm[name] - prev_itm[name]
     dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
-    return 100 * (1 - dx / dy)
+    return int(100 * (1 - dx / dy))
 
 
-def perf_counter_bulk_count(name: str, itm: dict, prev_itm: dict) -> dict:
+def perf_100ns_queuelen_type(name: str, itm: dict, prev_itm: dict) -> dict:
+    time_base = itm['Frequency_PerfTime']
+    dx = itm[name] - prev_itm[name]
+    dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
+    return int(dx / (dy / time_base))
+
+
+def perf_counter_counter(name: str, itm: dict, prev_itm: dict) -> dict:
     time_base = itm['Frequency_PerfTime']
     dx = itm[name] - prev_itm[name]
     dy = itm['Timestamp_PerfTime'] - prev_itm['Timestamp_PerfTime']
-    assert time_base
-    return dx / (dy / time_base)
+    return int(dx / (dy / time_base))
+
+
+def perf_precision_100nsec_timer(name: str, itm: dict, prev_itm: dict) -> dict:
+    dx = itm[name] - prev_itm[name]
+    dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
+    return int(dx / dy)
 
 
 COUNTER_FUNS = {
     'PERF_100NSEC_TIMER_INV': perf_100nsec_timer_inv,
-    'PERF_COUNTER_100NS_QUEUELEN_TYPE': lambda *args: None,  # TODO
-    'PERF_COUNTER_BULK_COUNT': perf_counter_bulk_count,
-    'PERF_COUNTER_COUNTER': lambda *args: None,  # TODO
+    'PERF_COUNTER_100NS_QUEUELEN_TYPE': perf_100ns_queuelen_type,
+    'PERF_COUNTER_BULK_COUNT': perf_counter_counter,
+    'PERF_COUNTER_COUNTER': perf_counter_counter,
     'PERF_ELAPSED_TIME': perf_elapsed_time,
-    'PERF_PRECISION_100NS_TIMER': lambda *args: None,  # TODO
+    'PERF_PRECISION_100NS_TIMER': perf_precision_100nsec_timer,
 }
 
 OTHER_METRICS = (

@@ -1,3 +1,4 @@
+import asyncio
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
@@ -80,14 +81,21 @@ async def check_network(
 
             rows = await wmiquery(conn, service, INTERFACE_QUERY_RAW)
             rows_lk = {i['Name']: i for i in rows}
-            prev = CACHE.get(asset.id)
-            CACHE[asset.id] = rows_lk
-            if prev:
-                ct, _ = on_counters(rows_lk, prev, {
-                    'BytesReceivedPersec': 'PERF_COUNTER_BULK_COUNT',
-                    'BytesSentPersec': 'PERF_COUNTER_BULK_COUNT',
-                })
-                state[INTERFACE_TYPE_RAW] = [ct]
+            if asset.id in CACHE:
+                prev = CACHE.get(asset.id)
+                CACHE[asset.id] = rows_lk
+            else:
+                prev = rows_lk
+                await asyncio.sleep(5)
+                rows = await wmiquery(conn, service, INTERFACE_QUERY_RAW)
+                rows_lk = {i['Name']: i for i in rows}
+                CACHE[asset.id] = rows_lk
+                
+            ct, _ = on_counters(rows_lk, prev, {
+                'BytesReceivedPersec': 'PERF_COUNTER_BULK_COUNT',
+                'BytesSentPersec': 'PERF_COUNTER_BULK_COUNT',
+            })
+            state[INTERFACE_TYPE_RAW] = ct
         finally:
             wmiclose(conn, service)
         return state
