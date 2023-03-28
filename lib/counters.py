@@ -58,7 +58,7 @@ def on_counters(
         itm = counters[itm_name]
         prev = counters_previous[itm_name]
 
-        counter = {'name': itm_name}
+        counter = {}
         for m, v in itm.items():
             counter_name = counters_info.get(m)
             if counter_name:
@@ -68,8 +68,10 @@ def on_counters(
                 counter[m] = v
 
         if itm_name == '_Total':
+            counter['name'] = 'total'
             out_total.append(counter)
         else:
+            counter['name'] = itm_name
             out.append(counter)
 
     return out, out_total
