@@ -28,15 +28,6 @@ def perf_precision_100nsec_timer(name: str, itm: dict, prev_itm: dict) -> dict:
     return int(dx / dy)
 
 
-COUNTER_FUNS = {
-    'PERF_100NSEC_TIMER_INV': perf_100nsec_timer_inv,
-    'PERF_COUNTER_100NS_QUEUELEN_TYPE': perf_100ns_queuelen_type,
-    'PERF_COUNTER_BULK_COUNT': perf_counter_counter,
-    'PERF_COUNTER_COUNTER': perf_counter_counter,
-    'PERF_ELAPSED_TIME': perf_elapsed_time,
-    'PERF_PRECISION_100NS_TIMER': perf_precision_100nsec_timer,
-}
-
 OTHER_METRICS = (
     'Frequency_Object',
     'Frequency_PerfTime',
@@ -50,7 +41,7 @@ OTHER_METRICS = (
 def on_counters(
         counters: dict,
         counters_previous: dict,
-        counters_info: dict) -> list:
+        counters_map: dict) -> list:
 
     out = []
     out_total = []
@@ -60,9 +51,8 @@ def on_counters(
 
         counter = {}
         for m, v in itm.items():
-            counter_name = counters_info.get(m)
-            if counter_name:
-                fun = COUNTER_FUNS[counter_name]
+            fun = counters_map.get(m)
+            if fun:
                 counter[m] = fun(m, itm, prev)
             elif m not in OTHER_METRICS:
                 counter[m] = v

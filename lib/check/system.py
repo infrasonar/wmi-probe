@@ -4,11 +4,11 @@ import time
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
-from ..counters import on_counters
+from ..counters import on_counters, perf_100nsec_timer_inv
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..utils import get_state
 
-CACHE = {}
+_CACHE = {}
 
 SYSTEM_TYPE = "system"
 SYSTEM_QUERY = Query("""
@@ -90,16 +90,16 @@ async def check_system(
 
             rows = await wmiquery(conn, service, PROCESSOR_QUERY)
             rows_lk = {i['Name']: i for i in rows}
-            if asset.id in CACHE:
-                prev = CACHE.get(asset.id)
+            if asset.id in _CACHE:
+                prev = _CACHE.get(asset.id)
             else:
                 prev = rows_lk
-                await asyncio.sleep(5)
+                await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, PROCESSOR_QUERY)
                 rows_lk = {i['Name']: i for i in rows}
-            CACHE[asset.id] = rows_lk
+            _CACHE[asset.id] = rows_lk
             ct, ct_total = on_counters(rows_lk, prev, {
-                'PercentProcessorTime': 'PERF_100NSEC_TIMER_INV',
+                'PercentProcessorTime': perf_100nsec_timer_inv,
             })
             state[PROCESSOR_TYPE] = ct
             state[f'{PROCESSOR_TYPE}Total'] = ct_total
