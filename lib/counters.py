@@ -1,31 +1,31 @@
 from typing import Tuple
 
 
-def perf_elapsed_time(name: str, itm: dict, prev_itm: dict) -> dict:
+def perf_elapsed_time(name: str, itm: dict, prev_itm: dict) -> float:
     return (itm['Timestamp_Object'] - itm[name]) / itm['Frequency_Object']
 
 
-def perf_100nsec_timer_inv(name: str, itm: dict, prev_itm: dict) -> dict:
+def perf_100nsec_timer_inv(name: str, itm: dict, prev_itm: dict) -> int:
     dx = itm[name] - prev_itm[name]
     dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
     return int(100 * (1 - dx / dy))
 
 
-def perf_100ns_queuelen_type(name: str, itm: dict, prev_itm: dict) -> dict:
+def perf_100ns_queuelen_type(name: str, itm: dict, prev_itm: dict) -> int:
     time_base = itm['Frequency_PerfTime']
     dx = itm[name] - prev_itm[name]
     dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
     return int(dx / (dy / time_base))
 
 
-def perf_counter_counter(name: str, itm: dict, prev_itm: dict) -> dict:
+def perf_counter_counter(name: str, itm: dict, prev_itm: dict) -> int:
     time_base = itm['Frequency_PerfTime']
     dx = itm[name] - prev_itm[name]
     dy = itm['Timestamp_PerfTime'] - prev_itm['Timestamp_PerfTime']
     return int(dx / (dy / time_base))
 
 
-def perf_precision_100nsec_timer(name: str, itm: dict, prev_itm: dict) -> dict:
+def perf_precision_100nsec_timer(name: str, itm: dict, prev_itm: dict) -> int:
     dx = itm[name] - prev_itm[name]
     dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
     return int(dx / dy)
