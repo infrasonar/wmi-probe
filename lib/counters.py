@@ -1,3 +1,6 @@
+from typing import Tuple
+
+
 def perf_elapsed_time(name: str, itm: dict, prev_itm: dict) -> dict:
     return (itm['Timestamp_Object'] - itm[name]) / itm['Frequency_Object']
 
@@ -41,7 +44,7 @@ OTHER_METRICS = (
 def on_counters(
         counters: dict,
         counters_previous: dict,
-        counters_map: dict) -> list:
+        counters_map: dict) -> Tuple[list, list]:
 
     out = []
     out_total = []
