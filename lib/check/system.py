@@ -93,9 +93,8 @@ async def check_system(
 
             rows = await wmiquery(conn, service, PROCESSOR_QUERY)
             rows_lk = {i['Name']: i for i in rows}
-            if asset.id in _CACHE:
-                prev = _CACHE.get(asset.id)
-            else:
+            prev = _CACHE.get(asset.id, {})
+            if set(rows_lk) - set(prev):
                 prev = rows_lk
                 await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, PROCESSOR_QUERY)
