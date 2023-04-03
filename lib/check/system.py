@@ -1,11 +1,10 @@
-import asyncio
 import datetime
 import time
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
 from ..counters import on_counters, perf_100nsec_timer_inv
-from ..wmiquery import wmiconn, wmiquery, wmiclose
+from ..wmiquery import wmiconn, wmiquery, wmiquery_cached, wmiclose
 from ..utils import get_state
 
 _CACHE = {}
@@ -91,15 +90,9 @@ async def check_system(
             rows = await wmiquery(conn, service, OS_QUERY)
             state.update(get_state(OS_TYPE, rows, on_item_os))
 
-            rows = await wmiquery(conn, service, PROCESSOR_QUERY)
-            rows_lk = {i['Name']: i for i in rows}
-            prev = _CACHE.get(asset.id, {})
-            if set(rows_lk) - set(prev):
-                prev = rows_lk
-                await asyncio.sleep(3)
-                rows = await wmiquery(conn, service, PROCESSOR_QUERY)
-                rows_lk = {i['Name']: i for i in rows}
-            _CACHE[asset.id] = rows_lk
+            prev, rows_lk = await wmiquery_cached(conn, service,
+                                                  PROCESSOR_QUERY,
+                                                  _CACHE, asset.id)
             ct, ct_total = on_counters(rows_lk, prev, {
                 'PercentProcessorTime': perf_100nsec_timer_inv,
             })

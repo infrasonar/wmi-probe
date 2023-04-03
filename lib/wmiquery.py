@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 from aiowmi.query import Query
@@ -96,6 +97,25 @@ async def wmiquery(
         logging.exception(f'query error: {error_msg};')
         raise CheckException(error_msg)
     return rows
+
+
+async def wmiquery_cached(
+        conn: Connection,
+        service: Service,
+        query: Query,
+        cache: dict,
+        cache_key: int) -> Tuple[dict, dict]:
+
+    rows = await wmiquery(conn, service, query)
+    rows_lk = {i['Name']: i for i in rows}
+    prev_lk = cache.get(cache_key, {})
+    if set(rows_lk) - set(prev_lk):
+        prev_lk = rows_lk
+        await asyncio.sleep(3)
+        rows = await wmiquery(conn, service, query)
+        rows_lk = {i['Name']: i for i in rows}
+    cache[cache_key] = rows_lk
+    return prev_lk, rows_lk
 
 
 def wmiclose(conn: Connection, service: Service):
