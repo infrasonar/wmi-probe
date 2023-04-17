@@ -109,7 +109,11 @@ async def wmiquery_cached(
     rows = await wmiquery(conn, service, query)
     rows_lk = {i['Name']: i for i in rows}
     prev_lk = cache.get(cache_key, {})
-    if set(rows_lk) - set(prev_lk):
+    if set(rows_lk) - set(prev_lk) or any(
+        val < prev_lk[iname][name]
+        for iname, i in rows_lk.items()
+        for name, val in i.items() if isinstance(val, int)
+    ):
         prev_lk = rows_lk
         await asyncio.sleep(3)
         rows = await wmiquery(conn, service, query)
