@@ -1,3 +1,3 @@
 aiowmi==0.2.3
-libprobe==0.2.30
+libprobe==0.2.31
 pywmitool>=0.1.3
