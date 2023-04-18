@@ -91,7 +91,7 @@ async def check_system(
             rows = await wmiquery(conn, service, PROCESSOR_QUERY)
             rows_lk = {i['Name']: i for i in rows}
             prev = _CACHE.get(asset.id)
-            if prev is None or any(
+            while prev is None or any(
                 name not in prev or
                 i['PercentProcessorTime'] < prev[name]['PercentProcessorTime']
                 for name, i in rows_lk.items()
@@ -100,6 +100,7 @@ async def check_system(
                 await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, PROCESSOR_QUERY)
                 rows_lk = {i['Name']: i for i in rows}
+
             _CACHE[asset.id] = rows_lk
             ct, ct_total = on_counters(rows_lk, prev, {
                 'PercentProcessorTime': perf_100nsec_timer_inv,
