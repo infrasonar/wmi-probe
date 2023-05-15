@@ -31,7 +31,7 @@ OS_QUERY = Query("""
 PROCESSOR_TYPE = "processor"
 PROCESSOR_QUERY = Query("""
     SELECT
-    Name, Timestamp_PerfTime, PercentProcessorTime
+    Name, Timestamp_Sys100NS, PercentProcessorTime
     FROM Win32_PerfRawData_PerfOS_Processor
 """)
 
