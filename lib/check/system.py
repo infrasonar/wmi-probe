@@ -75,7 +75,7 @@ def on_item_os(itm: dict) -> dict:
 def validate(item, prev):
     n = item['PercentProcessorTime'] - prev['PercentProcessorTime']
     d = item['Timestamp_Sys100NS'] - prev['Timestamp_Sys100NS']
-    return 0 <= n < d
+    return d > 0 and 0 >= round(100 * (1 - n / d)) <= 100
 
 
 async def check_system(
