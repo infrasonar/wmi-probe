@@ -72,6 +72,12 @@ def on_item_os(itm: dict) -> dict:
     }
 
 
+def validate(item, prev):
+    n = item['PercentProcessorTime'] - prev['PercentProcessorTime']
+    d = item['Timestamp_Sys100NS'] - prev['Timestamp_Sys100NS']
+    return n >= 0 and d >= 0 and n > d
+
+
 async def check_system(
         asset: Asset,
         asset_config: dict,
@@ -92,8 +98,7 @@ async def check_system(
             rows_lk = {i['Name']: i for i in rows}
             prev = _CACHE.get(asset.id)
             while prev is None or any(
-                name not in prev or
-                i['PercentProcessorTime'] < prev[name]['PercentProcessorTime']
+                name not in prev or not validate(i, prev[name])
                 for name, i in rows_lk.items()
             ):
                 prev = rows_lk
