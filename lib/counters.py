@@ -6,29 +6,29 @@ def perf_elapsed_time(name: str, itm: dict, prev_itm: dict) -> float:
 
 
 def perf_100nsec_timer_inv(name: str, itm: dict, prev_itm: dict) -> int:
-    dx = itm[name] - prev_itm[name]
-    dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
-    return int(100 * (1 - dx / dy))
+    n = itm[name] - prev_itm[name]
+    d = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
+    return round(100 * (1 - n / d))
 
 
 def perf_100ns_queuelen_type(name: str, itm: dict, prev_itm: dict) -> int:
     time_base = itm['Frequency_PerfTime']
-    dx = itm[name] - prev_itm[name]
-    dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
-    return int(dx / (dy / time_base))
+    n = itm[name] - prev_itm[name]
+    d = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
+    return round(n / (d / time_base))
 
 
 def perf_counter_counter(name: str, itm: dict, prev_itm: dict) -> int:
     time_base = itm['Frequency_PerfTime']
-    dx = itm[name] - prev_itm[name]
-    dy = itm['Timestamp_PerfTime'] - prev_itm['Timestamp_PerfTime']
-    return int(dx / (dy / time_base))
+    n = itm[name] - prev_itm[name]
+    d = itm['Timestamp_PerfTime'] - prev_itm['Timestamp_PerfTime']
+    return round(n / (d / time_base))
 
 
 def perf_precision_100nsec_timer(name: str, itm: dict, prev_itm: dict) -> int:
-    dx = itm[name] - prev_itm[name]
-    dy = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
-    return int(dx / dy)
+    n = itm[name] - prev_itm[name]
+    d = itm['Timestamp_Sys100NS'] - prev_itm['Timestamp_Sys100NS']
+    return round(n / d)
 
 
 OTHER_METRICS = (
