@@ -55,6 +55,10 @@ async def check_users(
                 'name': name,
                 'SessionCount': count
             } for name, count in name_login.items()]
+            state[f'{LOGGED_ON_TYPE}Total'] = [{
+                'name': 'total',
+                'SessionCount': len(rows)
+            }]
         finally:
             wmiclose(conn, service)
         return state
