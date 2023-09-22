@@ -2,10 +2,7 @@ import datetime
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from libprobe.exceptions import (
-    CheckException,
-    IgnoreCheckException,
-    IgnoreResultException)
+from libprobe.exceptions import CheckException, IgnoreCheckException
 from aiowmi.query import Query
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
@@ -32,8 +29,7 @@ async def wmiconn(
     username = asset_config.get('username')
     password = asset_config.get('password')
     if None in (username, password):
-        logging.error(f'missing credentails for {asset}')
-        raise IgnoreResultException
+        raise CheckException('missing credentials')
 
     if '\\' in username:
         # Replace double back-slash with single if required
