@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from aiowmi.query import Query
 from aiowmi.ndr.property_info import PropertyInfo
 from aiowmi.connection import Connection
@@ -103,7 +104,7 @@ async def check_storage(
                     refs=refs,
                     timeout=20)
                 state.update({SHADOW_TYPE: rows})
-            except (Exception, TimeoutError) as e:
+            except (Exception, asyncio.TimeoutError) as e:
                 msg = str(e) or type(e).__name__
                 raise IncompleteResultException(
                     f'failed to read shadow storage: {msg}',
