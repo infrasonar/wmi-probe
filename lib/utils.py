@@ -1,5 +1,17 @@
 import datetime
-from typing import Callable, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
+
+
+class PidLookup:
+    _PID_LK = None
+
+    @classmethod
+    def get(cls) -> Dict[int, str]:
+        return cls._PID_LK
+    
+    @classmethod
+    def set(cls, pid_lk: Dict[int, str]):
+        cls._PID_LK = pid_lk
 
 
 def parse_wmi_date(val, fmt: Optional[str] = '%Y%m%d') -> Union[int, None]:

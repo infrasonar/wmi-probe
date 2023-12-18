@@ -1,6 +1,7 @@
 from libprobe.probe import Probe
 from lib.check.memory import check_memory
 from lib.check.network import check_network
+from lib.check.netstat import check_netstat
 from lib.check.nt_domain import check_nt_domain
 from lib.check.process import check_process
 from lib.check.services import check_services
@@ -15,6 +16,7 @@ from lib.version import __version__ as version
 if __name__ == '__main__':
     checks = {
         'memory': check_memory,
+        'netstat': check_netstat,
         'network': check_network,
         'ntDomain': check_nt_domain,
         'process': check_process,

@@ -32,6 +32,36 @@ ROUTE_QUERY = Query("""
     Destination, InterfaceIndex, Mask, Metric1, NextHop, Protocol, Type
     FROM Win32_IP4RouteTable
 """)
+TCPV4_TYPE = "tcpv4"
+TCPV4_QUERY = Query("""
+    SELECT
+    Name, ConnectionFailures, ConnectionsActive, ConnectionsEstablished, 
+    ConnectionsPassive, ConnectionsReset, SegmentsPersec, 
+    SegmentsReceivedPersec, SegmentsRetransmittedPersec, SegmentsSentPersec
+    FROM Win32_PerfRawData_Tcpip_TCPv4
+""")
+TCPV6_TYPE = "tcpv6"
+TCPV6_QUERY = Query("""
+    SELECT
+    Name, ConnectionFailures, ConnectionsActive, ConnectionsEstablished, 
+    ConnectionsPassive, ConnectionsReset, SegmentsPersec, 
+    SegmentsReceivedPersec, SegmentsRetransmittedPersec, SegmentsSentPersec
+    FROM Win32_PerfRawData_Tcpip_TCPv6
+""")
+UDPV4_TYPE = "udpv4"
+UDPV4_QUERY = Query("""
+    SELECT
+    Name, DatagramsNoPortPerSec, DatagramsPerSec, DatagramsReceivedErrors, 
+    DatagramsReceivedPerSec, DatagramsSentPerSec
+    FROM Win32_PerfRawData_Tcpip_UDPv4
+""")
+UDPV6_TYPE = "udpv6"
+UDPV6_QUERY = Query("""
+    SELECT
+    Name, DatagramsNoPortPerSec, DatagramsPerSec, DatagramsReceivedErrors, 
+    DatagramsReceivedPerSec, DatagramsSentPerSec
+    FROM Win32_PerfRawData_Tcpip_UDPv6
+""")
 
 
 def on_item_adapter(itm: dict) -> dict:
@@ -66,6 +96,18 @@ async def check_network(
 
             rows = await wmiquery(conn, service, ROUTE_QUERY)
             state.update(get_state(ROUTE_TYPE, rows, on_item_route))
+
+            rows = await wmiquery(conn, service, TCPV4_TYPE)
+            state.update(get_state(TCPV4_QUERY, rows, on_item_route))
+
+            rows = await wmiquery(conn, service, TCPV6_TYPE)
+            state.update(get_state(TCPV6_QUERY, rows, on_item_route))
+
+            rows = await wmiquery(conn, service, UDPV4_TYPE)
+            state.update(get_state(UDPV4_QUERY, rows, on_item_route))
+
+            rows = await wmiquery(conn, service, UDPV6_TYPE)
+            state.update(get_state(UDPV6_QUERY, rows, on_item_route))
         finally:
             wmiclose(conn, service)
         return state

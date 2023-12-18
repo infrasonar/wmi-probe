@@ -37,6 +37,7 @@ vcenter:
 Available checks:
 - `memory`
 - `network`
+- `netstat`
 - `ntDomain`
 - `process`
 - `services`
