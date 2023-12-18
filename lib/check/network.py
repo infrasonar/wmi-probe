@@ -58,8 +58,8 @@ UDPV4_CACHE = {}
 UDPV4_TYPE = "udpv4"
 UDPV4_QUERY = Query("""
     SELECT
-    DatagramsNoPortPerSec, DatagramsPerSec, DatagramsReceivedErrors, 
-    DatagramsReceivedPerSec, DatagramsSentPerSec,
+    DatagramsNoPortPersec, DatagramsPersec, DatagramsReceivedErrors, 
+    DatagramsReceivedPersec, DatagramsSentPersec,
     Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_Tcpip_UDPv4
 """)
@@ -67,8 +67,8 @@ UDPV6_CACHE = {}
 UDPV6_TYPE = "udpv6"
 UDPV6_QUERY = Query("""
     SELECT
-    DatagramsNoPortPerSec, DatagramsPerSec, DatagramsReceivedErrors, 
-    DatagramsReceivedPerSec, DatagramsSentPerSec, 
+    DatagramsNoPortPersec, DatagramsPersec, DatagramsReceivedErrors, 
+    DatagramsReceivedPersec, DatagramsSentPersec, 
     Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_Tcpip_UDPv6
 """)
@@ -98,6 +98,11 @@ def validate(item, prev):
 def on_tcp_item(name: str, item: dict, prev: dict):
     return {
         'name': name,
+        'ConnectionFailures': item['ConnectionFailures'], 
+        'ConnectionsActive': item['ConnectionsActive'], 
+        'ConnectionsEstablished': item['ConnectionsEstablished'], 
+        'ConnectionsPassive': item['ConnectionsPassive'], 
+        'ConnectionsReset': item['ConnectionsReset'], 
         'SegmentsPersec': perf_counter_counter(
             'SegmentsPersec', item, prev),
         'SegmentsReceivedPersec': perf_counter_counter(
@@ -116,8 +121,7 @@ def on_udp_item(name: str, item: dict, prev: dict):
             'DatagramsNoPortPersec', item, prev),
         'DatagramsPersec': perf_counter_counter(
             'DatagramsPersec', item, prev),
-        'DatagramsReceivedErrors': perf_counter_counter(
-            'DatagramsReceivedErrors', item, prev),
+        'DatagramsReceivedErrors': item['DatagramsReceivedErrors'],
         'DatagramsReceivedPersec': perf_counter_counter(
             'DatagramsReceivedPersec', item, prev),
         'DatagramsSentPersec': perf_counter_counter(
