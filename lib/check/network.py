@@ -90,9 +90,22 @@ def on_item_route(itm: dict) -> dict:
     itm['Type'] = ROUTE_TYPE_MAP.get(itm['Type'])
     return itm
 
-def validate(item, prev):
-    d = item['Timestamp_PerfTime'] - prev['Timestamp_PerfTime']
-    return d > 0
+
+def validate_tcp_item(item, prev):
+    return item['Timestamp_PerfTime'] > prev['Timestamp_PerfTime'] and \
+        item['SegmentsPersec'] >= prev['SegmentsPersec'] and \
+        item['SegmentsSentPersec'] >= prev['SegmentsSentPersec'] and \
+        item['SegmentsReceivedPersec'] >= prev['SegmentsReceivedPersec'] and \
+        item['SegmentsRetransmittedPersec'] >= \
+            prev['SegmentsRetransmittedPersec']
+
+
+def validate_udp_item(item, prev):
+    return item['Timestamp_PerfTime'] > prev['Timestamp_PerfTime'] and \
+        item['DatagramsNoPortPersec'] >= prev['DatagramsNoPortPersec'] and \
+        item['DatagramsPersec'] >= prev['DatagramsPersec'] and \
+        item['DatagramsSentPersec'] >= prev['DatagramsSentPersec'] and \
+        item['DatagramsReceivedPersec'] >= prev['DatagramsReceivedPersec']
 
 
 def on_tcp_item(name: str, item: dict, prev: dict):
@@ -147,7 +160,7 @@ async def check_network(
 
             rows = await wmiquery(conn, service, TCPV4_QUERY)
             prev = TCPV4_CACHE.get(asset.id)
-            while prev is None or not validate(rows[0], prev):
+            while prev is None or not validate_tcp_item(rows[0], prev):
                 prev = rows[0]
                 await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, TCPV4_QUERY)
@@ -156,7 +169,7 @@ async def check_network(
 
             rows = await wmiquery(conn, service, TCPV6_QUERY)
             prev = TCPV6_CACHE.get(asset.id)
-            while prev is None or not validate(rows[0], prev):
+            while prev is None or not validate_tcp_item(rows[0], prev):
                 prev = rows[0]
                 await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, TCPV6_QUERY)
@@ -165,7 +178,7 @@ async def check_network(
 
             rows = await wmiquery(conn, service, UDPV4_QUERY)
             prev = UDPV4_CACHE.get(asset.id)
-            while prev is None or not validate(rows[0], prev):
+            while prev is None or not validate_udp_item(rows[0], prev):
                 prev = rows[0]
                 await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, UDPV4_QUERY)
@@ -174,7 +187,7 @@ async def check_network(
             
             rows = await wmiquery(conn, service, UDPV6_QUERY)
             prev = UDPV6_CACHE.get(asset.id)
-            while prev is None or not validate(rows[0], prev):
+            while prev is None or not validate_udp_item(rows[0], prev):
                 prev = rows[0]
                 await asyncio.sleep(3)
                 rows = await wmiquery(conn, service, UDPV6_QUERY)
