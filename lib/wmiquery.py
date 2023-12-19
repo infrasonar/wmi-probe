@@ -84,8 +84,10 @@ async def wmiquery(
                     else:
                         row[name] = prop.value
                 rows.append(row)
-    except (WbemExInvalidClass, WbemExInvalidNamespace):
-        raise IgnoreCheckException
+    except WbemExInvalidClass as e:
+        raise CheckException('Invalid class')
+    except WbemExInvalidNamespace:
+        raise CheckException(f'Invalid namespace {query.namespace}')
     except asyncio.TimeoutError:
         raise CheckException('WMI query timed out')
     except Exception as e:
