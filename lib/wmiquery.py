@@ -4,12 +4,11 @@ import asyncio
 import re
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from libprobe.exceptions import CheckException, IgnoreCheckException
-from aiowmi.query import Query
+from libprobe.exceptions import CheckException
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Optional
 
 
 DTYPS_NOT_NULL = {
@@ -20,7 +19,7 @@ DTYPS_NOT_NULL = {
 }
 QUERY_TIMEOUT = 120
 QUERY_CLASS_PAT = re.compile('\s+from\s(\w+)\s?', re.IGNORECASE)
-    
+
 
 def get_class(query: str) -> str:
     o = QUERY_CLASS_PAT.search(query)
