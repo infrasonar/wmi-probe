@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
@@ -34,41 +35,43 @@ ROUTE_QUERY = Query("""
     Destination, InterfaceIndex, Mask, Metric1, NextHop, Protocol, Type
     FROM Win32_IP4RouteTable
 """)
+TCP_TYPE = 'tcp'
 TCPV4_CACHE = {}
-TCPV4_TYPE = "tcpv4"
+TCPV4_NAME = "TCPv4"
 TCPV4_QUERY = Query("""
     SELECT
-    ConnectionFailures, ConnectionsActive, ConnectionsEstablished, 
-    ConnectionsPassive, ConnectionsReset, SegmentsPersec, 
+    ConnectionFailures, ConnectionsActive, ConnectionsEstablished,
+    ConnectionsPassive, ConnectionsReset, SegmentsPersec,
     SegmentsReceivedPersec, SegmentsRetransmittedPersec, SegmentsSentPersec,
     Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_Tcpip_TCPv4
 """)
 TCPV6_CACHE = {}
-TCPV6_TYPE = "tcpv6"
+TCPV6_NAME = "TCPv6"
 TCPV6_QUERY = Query("""
     SELECT
-    ConnectionFailures, ConnectionsActive, ConnectionsEstablished, 
-    ConnectionsPassive, ConnectionsReset, SegmentsPersec, 
+    ConnectionFailures, ConnectionsActive, ConnectionsEstablished,
+    ConnectionsPassive, ConnectionsReset, SegmentsPersec,
     SegmentsReceivedPersec, SegmentsRetransmittedPersec, SegmentsSentPersec,
     Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_Tcpip_TCPv6
 """)
+UDP_TYPE = 'udp'
 UDPV4_CACHE = {}
-UDPV4_TYPE = "udpv4"
+UDPV4_NAME = "UDPv4"
 UDPV4_QUERY = Query("""
     SELECT
-    DatagramsNoPortPersec, DatagramsPersec, DatagramsReceivedErrors, 
+    DatagramsNoPortPersec, DatagramsPersec, DatagramsReceivedErrors,
     DatagramsReceivedPersec, DatagramsSentPersec,
     Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_Tcpip_UDPv4
 """)
 UDPV6_CACHE = {}
-UDPV6_TYPE = "udpv6"
+UDPV6_NAME = "UDPv6"
 UDPV6_QUERY = Query("""
     SELECT
-    DatagramsNoPortPersec, DatagramsPersec, DatagramsReceivedErrors, 
-    DatagramsReceivedPersec, DatagramsSentPersec, 
+    DatagramsNoPortPersec, DatagramsPersec, DatagramsReceivedErrors,
+    DatagramsReceivedPersec, DatagramsSentPersec,
     Frequency_PerfTime, Timestamp_PerfTime
     FROM Win32_PerfRawData_Tcpip_UDPv6
 """)
@@ -111,11 +114,11 @@ def validate_udp_item(item, prev):
 def on_tcp_item(name: str, item: dict, prev: dict):
     return {
         'name': name,
-        'ConnectionFailures': item['ConnectionFailures'], 
-        'ConnectionsActive': item['ConnectionsActive'], 
-        'ConnectionsEstablished': item['ConnectionsEstablished'], 
-        'ConnectionsPassive': item['ConnectionsPassive'], 
-        'ConnectionsReset': item['ConnectionsReset'], 
+        'ConnectionFailures': item['ConnectionFailures'],
+        'ConnectionsActive': item['ConnectionsActive'],
+        'ConnectionsEstablished': item['ConnectionsEstablished'],
+        'ConnectionsPassive': item['ConnectionsPassive'],
+        'ConnectionsReset': item['ConnectionsReset'],
         'SegmentsPersec': perf_counter_counter(
             'SegmentsPersec', item, prev),
         'SegmentsReceivedPersec': perf_counter_counter(
@@ -158,42 +161,66 @@ async def check_network(
             rows = await wmiquery(conn, service, ROUTE_QUERY)
             state.update(get_state(ROUTE_TYPE, rows, on_item_route))
 
-            rows = await wmiquery(conn, service, TCPV4_QUERY)
-            prev = TCPV4_CACHE.get(asset.id)
-            while prev is None or not validate_tcp_item(rows[0], prev):
-                prev = rows[0]
-                await asyncio.sleep(3)
+            tcp = []
+            try:
                 rows = await wmiquery(conn, service, TCPV4_QUERY)
-            TCPV4_CACHE[asset.id] = rows[0]
-            state[TCPV4_TYPE] = [on_tcp_item(TCPV4_TYPE, rows[0], prev)]
+                prev = TCPV4_CACHE.get(asset.id)
+                while prev is None or not validate_tcp_item(rows[0], prev):
+                    prev = rows[0]
+                    await asyncio.sleep(3)
+                    rows = await wmiquery(conn, service, TCPV4_QUERY)
+                TCPV4_CACHE[asset.id] = rows[0]
+                tcp.append(on_tcp_item(TCPV4_NAME, rows[0], prev))
+            except Exception as e:
+                msg = str(e) or type(e).__name__
+                logging.error(f'failed TCPv4 query: {msg}')
 
-            rows = await wmiquery(conn, service, TCPV6_QUERY)
-            prev = TCPV6_CACHE.get(asset.id)
-            while prev is None or not validate_tcp_item(rows[0], prev):
-                prev = rows[0]
-                await asyncio.sleep(3)
+            try:
                 rows = await wmiquery(conn, service, TCPV6_QUERY)
-            TCPV6_CACHE[asset.id] = rows[0]
-            state[TCPV6_TYPE] = [on_tcp_item(TCPV6_TYPE, rows[0], prev)]
+                prev = TCPV6_CACHE.get(asset.id)
+                while prev is None or not validate_tcp_item(rows[0], prev):
+                    prev = rows[0]
+                    await asyncio.sleep(3)
+                    rows = await wmiquery(conn, service, TCPV6_QUERY)
+                TCPV6_CACHE[asset.id] = rows[0]
+                tcp.append(on_tcp_item(TCPV6_NAME, rows[0], prev))
+            except Exception as e:
+                msg = str(e) or type(e).__name__
+                logging.error(f'failed TCPv6 query: {msg}')
 
-            rows = await wmiquery(conn, service, UDPV4_QUERY)
-            prev = UDPV4_CACHE.get(asset.id)
-            while prev is None or not validate_udp_item(rows[0], prev):
-                prev = rows[0]
-                await asyncio.sleep(3)
+            if tcp:
+                state[TCP_TYPE] = tcp
+
+            udp = []
+            try:
                 rows = await wmiquery(conn, service, UDPV4_QUERY)
-            UDPV4_CACHE[asset.id] = rows[0]
-            state[UDPV4_TYPE] = [on_udp_item(UDPV4_TYPE, rows[0], prev)]
-            
-            rows = await wmiquery(conn, service, UDPV6_QUERY)
-            prev = UDPV6_CACHE.get(asset.id)
-            while prev is None or not validate_udp_item(rows[0], prev):
-                prev = rows[0]
-                await asyncio.sleep(3)
+                prev = UDPV4_CACHE.get(asset.id)
+                while prev is None or not validate_udp_item(rows[0], prev):
+                    prev = rows[0]
+                    await asyncio.sleep(3)
+                    rows = await wmiquery(conn, service, UDPV4_QUERY)
+                UDPV4_CACHE[asset.id] = rows[0]
+                udp.append(on_udp_item(UDPV4_NAME, rows[0], prev))
+            except Exception as e:
+                msg = str(e) or type(e).__name__
+                logging.error(f'failed UDPv4 query: {msg}')
+
+            try:
                 rows = await wmiquery(conn, service, UDPV6_QUERY)
-            UDPV6_CACHE[asset.id] = rows[0]
-            state[UDPV6_TYPE] = [on_udp_item(UDPV6_TYPE, rows[0], prev)]
-            
+                prev = UDPV6_CACHE.get(asset.id)
+                while prev is None or not validate_udp_item(rows[0], prev):
+                    prev = rows[0]
+                    await asyncio.sleep(3)
+                    rows = await wmiquery(conn, service, UDPV6_QUERY)
+                UDPV6_CACHE[asset.id] = rows[0]
+                udp.append(on_udp_item(UDPV6_NAME, rows[0], prev))
+            except Exception as e:
+                msg = str(e) or type(e).__name__
+                logging.error(f'failed UDPv6 query: {msg}')
+
+            if udp:
+                state[UDP_TYPE] = udp
+
         finally:
             wmiclose(conn, service)
         return state
