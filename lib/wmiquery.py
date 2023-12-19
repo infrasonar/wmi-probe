@@ -1,6 +1,7 @@
 import datetime
 import logging
 import asyncio
+import re
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from libprobe.exceptions import CheckException, IgnoreCheckException
@@ -18,6 +19,12 @@ DTYPS_NOT_NULL = {
     list: [],
 }
 QUERY_TIMEOUT = 120
+
+
+def get_class(query: str) -> str:
+    r = re.compile('\s+from\s(\w+)\s', re.IGNORECASE)
+    o = r.search(query)
+    return o.group(1) if o else 'unknown'
 
 
 async def wmiconn(
@@ -85,9 +92,9 @@ async def wmiquery(
                         row[name] = prop.value
                 rows.append(row)
     except WbemExInvalidClass as e:
-        raise CheckException('Invalid class')
+        raise CheckException(f'invalid class: {get_class(query.query)}')
     except WbemExInvalidNamespace:
-        raise CheckException(f'Invalid namespace {query.namespace}')
+        raise CheckException(f'invalid namespace: {query.namespace}')
     except asyncio.TimeoutError:
         raise CheckException('WMI query timed out')
     except Exception as e:
