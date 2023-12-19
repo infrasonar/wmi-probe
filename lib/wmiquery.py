@@ -19,11 +19,11 @@ DTYPS_NOT_NULL = {
     list: [],
 }
 QUERY_TIMEOUT = 120
-
+QUERY_CLASS_PAT = re.compile('\s+from\s(\w+)\s?', re.IGNORECASE)
+    
 
 def get_class(query: str) -> str:
-    r = re.compile('\s+from\s(\w+)\s', re.IGNORECASE)
-    o = r.search(query)
+    o = QUERY_CLASS_PAT.search(query)
     return o.group(1) if o else 'unknown'
 
 
