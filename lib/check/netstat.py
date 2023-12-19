@@ -47,10 +47,10 @@ async def check_netstat(
 
             # retrieve pid lookup, 
             # when empty or aged query it here and set
-            pid_lk = PidLookup.get()
+            pid_lk = PidLookup.get(asset.id)
             if pid_lk is None:
                 pid_rows = await wmiquery(conn, service, PID_QUERY)
-                pid_lk = PidLookup.set(pid_rows)
+                pid_lk = PidLookup.set(asset.id, pid_rows)
         finally:
             wmiclose(conn, service)
         

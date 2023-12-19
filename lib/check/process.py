@@ -55,7 +55,7 @@ async def check_process(
             wmiclose(conn, service)
         
         # update the pid lookup which is used by netstat check
-        PidLookup.set(rows)
+        PidLookup.set(asset.id, rows)
 
         idict = defaultdict(new_item)
         for row in rows:

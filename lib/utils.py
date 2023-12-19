@@ -4,24 +4,24 @@ from typing import Callable, Dict, List, Optional, Union
 
 
 class PidLookup:
-    _lk = None
-    _ts = None
+    _lk = {}
     _MAX_AGE = 900
 
     @classmethod
-    def get(cls) -> Dict[int, str]:
-        if cls._ts is None or time.time() - cls._ts > cls._MAX_AGE:
+    def get(cls, asset_id: int) -> Dict[int, str]:
+        ts, data = cls._lk.get(asset_id, (None, None))
+        if ts is None or time.time() - ts > cls._MAX_AGE:
             return
-        return cls._lk
+        return data
     
     @classmethod
-    def set(cls, rows: list) -> Dict[int, str]:
-        cls._ts = time.time()
-        cls._lk = {
+    def set(cls, asset_id: int, rows: list) -> Dict[int, str]:
+        data = {
             row['IDProcess']: row['Name'].split('#')[0]
             for row in rows
         }
-        return cls._lk
+        cls._lk[asset_id] = (time.time(), data)
+        return data
 
 
 def parse_wmi_date(val, fmt: Optional[str] = '%Y%m%d') -> Union[int, None]:
