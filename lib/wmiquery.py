@@ -1,17 +1,14 @@
 import datetime
 import logging
 import asyncio
+import re
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from libprobe.exceptions import (
-    CheckException,
-    IgnoreCheckException,
-    IgnoreResultException)
-from aiowmi.query import Query
+from libprobe.exceptions import CheckException
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Optional
 
 
 DTYPS_NOT_NULL = {
@@ -21,6 +18,12 @@ DTYPS_NOT_NULL = {
     list: [],
 }
 QUERY_TIMEOUT = 120
+QUERY_CLASS_PAT = re.compile(r'\s+from\s(\w+)\s?', re.IGNORECASE)
+
+
+def get_class(query: str) -> str:
+    o = QUERY_CLASS_PAT.search(query)
+    return o.group(1) if o else 'unknown'
 
 
 async def wmiconn(
@@ -33,8 +36,7 @@ async def wmiconn(
     username = asset_config.get('username')
     password = asset_config.get('password')
     if None in (username, password):
-        logging.error(f'missing credentails for {asset}')
-        raise IgnoreResultException
+        raise CheckException('missing credentials')
 
     if '\\' in username:
         # Replace double back-slash with single if required
@@ -88,8 +90,10 @@ async def wmiquery(
                     else:
                         row[name] = prop.value
                 rows.append(row)
-    except (WbemExInvalidClass, WbemExInvalidNamespace):
-        raise IgnoreCheckException
+    except WbemExInvalidClass as e:
+        raise CheckException(f'invalid class: {get_class(query.query)}')
+    except WbemExInvalidNamespace:
+        raise CheckException(f'invalid namespace: {query.namespace}')
     except asyncio.TimeoutError:
         raise CheckException('WMI query timed out')
     except Exception as e:

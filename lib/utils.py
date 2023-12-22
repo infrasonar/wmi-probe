@@ -1,5 +1,27 @@
 import datetime
-from typing import Callable, List, Optional, Union
+import time
+from typing import Callable, Dict, List, Optional, Union
+
+
+class PidLookup:
+    _lk = {}
+    _MAX_AGE = 900
+
+    @classmethod
+    def get(cls, asset_id: int) -> Dict[int, str]:
+        ts, data = cls._lk.get(asset_id, (None, None))
+        if ts is None or time.time() - ts > cls._MAX_AGE:
+            return
+        return data
+
+    @classmethod
+    def set(cls, asset_id: int, rows: list) -> Dict[int, str]:
+        data = {
+            row['IDProcess']: row['Name'].split('#')[0]
+            for row in rows
+        }
+        cls._lk[asset_id] = (time.time(), data)
+        return data
 
 
 def parse_wmi_date(val, fmt: Optional[str] = '%Y%m%d') -> Union[int, None]:

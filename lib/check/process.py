@@ -2,6 +2,7 @@ from aiowmi.query import Query
 from collections import defaultdict
 from libprobe.asset import Asset
 from .asset_lock import get_asset_lock
+from ..utils import PidLookup
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
@@ -52,6 +53,9 @@ async def check_process(
             rows = await wmiquery(conn, service, QUERY)
         finally:
             wmiclose(conn, service)
+
+        # update the pid lookup which is used by netstat check
+        PidLookup.set(asset.id, rows)
 
         idict = defaultdict(new_item)
         for row in rows:
