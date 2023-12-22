@@ -23,7 +23,7 @@ STATE_LK = {
 TYPE_NAME = "netstat"
 QUERY = Query("""
     SELECT
-    CreationTime, InstanceID, LocalAddress, LocalPort, OwningProcess, 
+    CreationTime, InstanceID, LocalAddress, LocalPort, OwningProcess,
     RemoteAddress, RemotePort, State
     FROM MSFT_NetTCPConnection
 """, namespace=r'ROOT\StandardCIMV2')
@@ -45,7 +45,7 @@ async def check_netstat(
         try:
             rows = await wmiquery(conn, service, QUERY)
 
-            # retrieve pid lookup, 
+            # retrieve pid lookup,
             # when empty or aged query it here and set
             pid_lk = PidLookup.get(asset.id)
             if pid_lk is None:
@@ -53,14 +53,14 @@ async def check_netstat(
                 pid_lk = PidLookup.set(asset.id, pid_rows)
         finally:
             wmiclose(conn, service)
-        
+
         for row in rows:
             row['name'] = row.pop('InstanceID')
             row['CreationTime'] = int(row['CreationTime'])  # float timestamp
             row['OwningProcessID'] = row['OwningProcess']
             row['OwningProcess'] = pid_lk.get(row['OwningProcess'])
             row['State'] = STATE_LK.get(row['State'])
-            
+
         return {
             TYPE_NAME: rows
         }

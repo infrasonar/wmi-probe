@@ -13,7 +13,7 @@ class PidLookup:
         if ts is None or time.time() - ts > cls._MAX_AGE:
             return
         return data
-    
+
     @classmethod
     def set(cls, asset_id: int, rows: list) -> Dict[int, str]:
         data = {

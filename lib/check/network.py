@@ -100,7 +100,7 @@ def validate_tcp_item(item, prev):
         item['SegmentsSentPersec'] >= prev['SegmentsSentPersec'] and \
         item['SegmentsReceivedPersec'] >= prev['SegmentsReceivedPersec'] and \
         item['SegmentsRetransmittedPersec'] >= \
-            prev['SegmentsRetransmittedPersec']
+        prev['SegmentsRetransmittedPersec']
 
 
 def validate_udp_item(item, prev):

@@ -53,7 +53,7 @@ async def check_process(
             rows = await wmiquery(conn, service, QUERY)
         finally:
             wmiclose(conn, service)
-        
+
         # update the pid lookup which is used by netstat check
         PidLookup.set(asset.id, rows)
 
@@ -88,6 +88,5 @@ async def check_process(
             itm['WorkingSetPeak'] = max(
                 itm['WorkingSetPeak'],
                 row['WorkingSetPeak'])
-
 
         return {TYPE_NAME: list(idict.values())}
