@@ -4,7 +4,7 @@ import asyncio
 import re
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from libprobe.exceptions import CheckException
+from libprobe.exceptions import CheckException, IgnoreCheckException
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
@@ -71,7 +71,8 @@ async def wmiquery(
         service: Service,
         query: Query,
         refs: Optional[dict] = False,
-        timeout=QUERY_TIMEOUT) -> List[dict]:
+        timeout: int = QUERY_TIMEOUT,
+        ignore: bool = False) -> List[dict]:
     rows = []
 
     try:
@@ -90,10 +91,16 @@ async def wmiquery(
                     else:
                         row[name] = prop.value
                 rows.append(row)
-    except WbemExInvalidClass as e:
-        raise CheckException(f'invalid class: {get_class(query.query)}')
+    except WbemExInvalidClass:
+        msg = f'invalid class: {get_class(query.query)}'
+        if ignore:
+            raise IgnoreCheckException(msg)
+        raise CheckException(msg)
     except WbemExInvalidNamespace:
-        raise CheckException(f'invalid namespace: {query.namespace}')
+        msg = f'invalid namespace: {query.namespace}'
+        if ignore:
+            raise IgnoreCheckException(msg)
+        raise CheckException(msg)
     except asyncio.TimeoutError:
         raise CheckException('WMI query timed out')
     except Exception as e:

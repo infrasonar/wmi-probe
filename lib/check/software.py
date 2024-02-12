@@ -62,9 +62,13 @@ async def check_software(
             state = get_state(INSTALLED_TYPE_NAME, rows, on_installed)
 
             try:
-                rows = await wmiquery(conn, service, FEATURE_QUERY)
-            except IgnoreCheckException:
-                logging.debug(f'failed to query Win32_ServerFeature; {asset}')
+                rows = await wmiquery(
+                    conn,
+                    service,
+                    FEATURE_QUERY,
+                    ignore=True)
+            except IgnoreCheckException as e:
+                logging.debug(str(e))
             else:
                 if rows:
                     state.update(
