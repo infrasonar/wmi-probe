@@ -35,7 +35,7 @@ async def wmiconn(
         address = asset.name
     username = asset_config.get('username')
     password = asset_config.get('password')
-    if None in (username, password):
+    if username is None or password is None:
         raise CheckException('missing credentials')
 
     if '\\' in username:
@@ -70,7 +70,7 @@ async def wmiquery(
         conn: Connection,
         service: Service,
         query: Query,
-        refs: Optional[dict] = False,
+        refs: Optional[dict] = None,
         timeout: int = QUERY_TIMEOUT,
         ignore: bool = False) -> List[dict]:
     rows = []
