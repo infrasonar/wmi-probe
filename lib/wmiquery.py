@@ -9,6 +9,7 @@ from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
 from typing import List, Tuple, Optional
+from . import DOCS_URL
 
 
 DTYPS_NOT_NULL = {
@@ -36,7 +37,10 @@ async def wmiconn(
     username = asset_config.get('username')
     password = asset_config.get('password')
     if username is None or password is None:
-        raise CheckException('missing credentials')
+        raise CheckException(
+            'Missing credentials. Please refer to the following documentation'
+            f' for detailed instructions: <{DOCS_URL}>'
+        )
 
     if '\\' in username:
         # Replace double back-slash with single if required
