@@ -33,12 +33,12 @@ ADAPTER_CONF_QUERY = Query("""
     IGMPLevel, IPAddress, IPConnectionMetric, IPEnabled,
     IPFilterSecurityEnabled, IPPortSecurityEnabled, IPSecPermitIPProtocols,
     IPSecPermitTCPPorts, IPSecPermitUDPPorts, IPSubnet, IPUseZeroBroadcast,
-    Index, InterfaceIndex, KeepAliveInterval, KeepAliveTime, MACAddress, MTU,
-    NumForwardPackets, PMTUBHDetectEnabled, PMTUDiscoveryEnabled, ServiceName,
-    SettingID, TcpMaxConnectRetransmissions, TcpMaxDataRetransmissions,
-    TcpNumConnections, TcpUseRFC1122UrgentPointer, TcpWindowSize,
-    TcpipNetbiosOptions, WINSEnableLMHostsLookup, WINSHostLookupFile,
-    WINSPrimaryServer, WINSScopeID, WINSSecondaryServer
+    Index, InterfaceIndex, KeepAliveInterval, KeepAliveTime, MTU,
+    NumForwardPackets, PMTUBHDetectEnabled, PMTUDiscoveryEnabled, SettingID,
+    TcpMaxConnectRetransmissions, TcpMaxDataRetransmissions, TcpNumConnections,
+    TcpUseRFC1122UrgentPointer, TcpWindowSize, TcpipNetbiosOptions,
+    WINSEnableLMHostsLookup, WINSHostLookupFile, WINSPrimaryServer,
+    WINSScopeID, WINSSecondaryServer
     FROM Win32_NetworkAdapterConfiguration
 """)
 INTERFACE_TYPE = "interface"
@@ -108,6 +108,14 @@ def on_item_adapter(itm: dict) -> dict:
 
 def on_item_adapter_conf(itm: dict) -> dict:
     itm['name'] = str(itm.pop('Index'))
+
+    # as datetime in docs but can be empty string
+    expires_ts = itm.pop('DHCPLeaseExpires')
+    if isinstance(expires_ts, float):
+        itm['DHCPLeaseExpires'] = int(expires_ts)
+    obtained_ts = itm.pop('DHCPLeaseObtained')
+    if isinstance(obtained_ts, float):
+        itm['DHCPLeaseObtained'] = int(obtained_ts)
     return itm
 
 
