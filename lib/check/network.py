@@ -16,10 +16,29 @@ from ..values import (
 ADAPTER_TYPE = "adapter"
 ADAPTER_QUERY = Query("""
     SELECT
-    AdapterType, AutoSense, ConfigManagerErrorCode, MACAddress, Manufacturer,
-    NetConnectionID, NetConnectionStatus, NetEnabled, PhysicalAdapter,
-    PNPDeviceID, ProductName, ServiceName, Speed
+    AdapterType, AutoSense, ConfigManagerErrorCode, InterfaceIndex, MACAddress,
+    Manufacturer, NetConnectionID, NetConnectionStatus, NetEnabled,
+    PhysicalAdapter, PNPDeviceID, ProductName, ServiceName, Speed
     FROM Win32_NetworkAdapter
+""")
+ADAPTER_CONF_QUERY = Query("""
+    SELECT
+    ArpAlwaysSourceRoute, ArpUseEtherSNAP, Caption, DHCPEnabled,
+    DHCPLeaseExpires, DHCPLeaseObtained, DHCPServer, DNSDomain,
+    DNSDomainSuffixSearchOrder, DNSEnabledForWINSResolution, DNSHostName,
+    DNSServerSearchOrder, DatabasePath, DeadGWDetectEnabled, DefaultIPGateway,
+    DefaultTOS, DefaultTTL, Description, DomainDNSRegistrationEnabled,
+    ForwardBufferMemory, FullDNSRegistrationEnabled, GatewayCostMetric,
+    IGMPLevel, IPAddress, IPConnectionMetric, IPEnabled,
+    IPFilterSecurityEnabled, IPPortSecurityEnabled, IPSecPermitIPProtocols,
+    IPSecPermitTCPPorts, IPSecPermitUDPPorts, IPSubnet, IPUseZeroBroadcast,
+    Index, InterfaceIndex, KeepAliveInterval, KeepAliveTime, MACAddress, MTU,
+    NumForwardPackets, PMTUBHDetectEnabled, PMTUDiscoveryEnabled, ServiceName,
+    SettingID, TcpMaxConnectRetransmissions, TcpMaxDataRetransmissions,
+    TcpNumConnections, TcpUseRFC1122UrgentPointer, TcpWindowSize,
+    TcpipNetbiosOptions, WINSEnableLMHostsLookup, WINSHostLookupFile,
+    WINSPrimaryServer, WINSScopeID, WINSSecondaryServer
+    FROM Win32_NetworkAdapterConfiguration
 """)
 INTERFACE_TYPE = "interface"
 INTERFACE_QUERY = Query("""
@@ -152,13 +171,33 @@ async def check_network(
     async with get_asset_lock(asset):
         conn, service = await wmiconn(asset, asset_config, check_config)
         try:
+            rows = await wmiquery(conn, service, ADAPTER_CONF_QUERY)
+            adapter_conf_lookup = {
+                row['InterfaceIndex']: row for row in rows
+            }
+
             rows = await wmiquery(conn, service, ADAPTER_QUERY)
+            adapter_if_lookup = {
+                row['InterfaceIndex']: row['PNPDeviceID'] for row in rows
+            }
+
+            # merge adapter and adapter_configuration
+            for row in rows:
+                conf = adapter_conf_lookup.get(row['InterfaceIndex'])
+                # TODO raise IncompleteException / all metrics optional?
+                if conf is not None:
+                    row.update(conf)
             state = get_state(ADAPTER_TYPE, rows, on_item_adapter)
 
             rows = await wmiquery(conn, service, INTERFACE_QUERY)
             state.update(get_state(INTERFACE_TYPE, rows))
 
             rows = await wmiquery(conn, service, ROUTE_QUERY)
+
+            # add AdapterRef metric
+            for row in rows:
+                ref = adapter_if_lookup.get(row['InterfaceIndex'])
+                row['AdapterRef'] = ref  # can be None
             state.update(get_state(ROUTE_TYPE, rows, on_item_route))
 
             tcp = []
