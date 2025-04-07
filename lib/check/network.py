@@ -220,25 +220,42 @@ async def check_network(
             try:
                 rows = await wmiquery(conn, service, TCPV4_QUERY)
                 prev = TCPV4_CACHE.get(asset.id)
-                while prev is None or not validate_tcp_item(rows[0], prev):
+                while rows and (
+                        prev is None or
+                        not validate_tcp_item(rows[0], prev)):
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, TCPV4_QUERY)
-                TCPV4_CACHE[asset.id] = rows[0]
-                tcp.append(on_tcp_item(TCPV4_NAME, rows[0], prev))
+                if rows:
+                    TCPV4_CACHE[asset.id] = rows[0]
+                    tcp.append(on_tcp_item(TCPV4_NAME, rows[0], prev))
+                else:
+                    try:
+                        del TCPV4_CACHE[asset.id]
+                    except KeyError:
+                        pass
             except Exception as e:
                 msg = str(e) or type(e).__name__
                 logging.error(f'failed TCPv4 query: {msg}')
 
+
             try:
                 rows = await wmiquery(conn, service, TCPV6_QUERY)
                 prev = TCPV6_CACHE.get(asset.id)
-                while prev is None or not validate_tcp_item(rows[0], prev):
+                while rows and (
+                            prev is None or
+                            not validate_tcp_item(rows[0], prev)):
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, TCPV6_QUERY)
-                TCPV6_CACHE[asset.id] = rows[0]
-                tcp.append(on_tcp_item(TCPV6_NAME, rows[0], prev))
+                if rows:
+                    TCPV6_CACHE[asset.id] = rows[0]
+                    tcp.append(on_tcp_item(TCPV6_NAME, rows[0], prev))
+                else:
+                    try:
+                        del TCPV6_CACHE[asset.id]
+                    except KeyError:
+                        pass
             except Exception as e:
                 msg = str(e) or type(e).__name__
                 logging.error(f'failed TCPv6 query: {msg}')
@@ -250,12 +267,20 @@ async def check_network(
             try:
                 rows = await wmiquery(conn, service, UDPV4_QUERY)
                 prev = UDPV4_CACHE.get(asset.id)
-                while prev is None or not validate_udp_item(rows[0], prev):
+                while rows and (
+                            prev is None or
+                            not validate_udp_item(rows[0], prev)):
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, UDPV4_QUERY)
-                UDPV4_CACHE[asset.id] = rows[0]
-                udp.append(on_udp_item(UDPV4_NAME, rows[0], prev))
+                if rows:
+                    UDPV4_CACHE[asset.id] = rows[0]
+                    udp.append(on_udp_item(UDPV4_NAME, rows[0], prev))
+                else:
+                    try:
+                        del UDPV4_CACHE[asset.id]
+                    except KeyError:
+                        pass
             except Exception as e:
                 msg = str(e) or type(e).__name__
                 logging.error(f'failed UDPv4 query: {msg}')
@@ -263,12 +288,20 @@ async def check_network(
             try:
                 rows = await wmiquery(conn, service, UDPV6_QUERY)
                 prev = UDPV6_CACHE.get(asset.id)
-                while prev is None or not validate_udp_item(rows[0], prev):
+                while rows and (
+                            prev is None or
+                            not validate_udp_item(rows[0], prev)):
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, UDPV6_QUERY)
-                UDPV6_CACHE[asset.id] = rows[0]
-                udp.append(on_udp_item(UDPV6_NAME, rows[0], prev))
+                if rows:
+                    UDPV6_CACHE[asset.id] = rows[0]
+                    udp.append(on_udp_item(UDPV6_NAME, rows[0], prev))
+                else:
+                    try:
+                        del UDPV6_CACHE[asset.id]
+                    except KeyError:
+                        pass
             except Exception as e:
                 msg = str(e) or type(e).__name__
                 logging.error(f'failed UDPv6 query: {msg}')

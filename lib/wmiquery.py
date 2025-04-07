@@ -7,7 +7,8 @@ from libprobe.asset import Asset
 from libprobe.exceptions import CheckException, IgnoreCheckException
 from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
-from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
+from aiowmi.exceptions import (
+    WbemExInvalidClass, WbemExInvalidNamespace, WbemExInitializationFailure)
 from typing import List, Tuple, Optional
 from . import DOCS_URL
 
@@ -107,6 +108,9 @@ async def wmiquery(
         raise CheckException(msg)
     except asyncio.TimeoutError:
         raise CheckException('WMI query timed out')
+    except WbemExInitializationFailure as e:
+        error_msg = str(e) or type(e).__name__
+        raise CheckException(error_msg)
     except Exception as e:
         error_msg = str(e) or type(e).__name__
         # At this point log the exception as this can be useful for debugging
