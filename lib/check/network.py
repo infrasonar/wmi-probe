@@ -226,7 +226,7 @@ async def check_network(
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, TCPV4_QUERY)
-                if rows:
+                if rows and prev:
                     TCPV4_CACHE[asset.id] = rows[0]
                     tcp.append(on_tcp_item(TCPV4_NAME, rows[0], prev))
                 else:
@@ -247,7 +247,7 @@ async def check_network(
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, TCPV6_QUERY)
-                if rows:
+                if rows and prev:
                     TCPV6_CACHE[asset.id] = rows[0]
                     tcp.append(on_tcp_item(TCPV6_NAME, rows[0], prev))
                 else:
@@ -272,7 +272,7 @@ async def check_network(
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, UDPV4_QUERY)
-                if rows:
+                if rows and prev:
                     UDPV4_CACHE[asset.id] = rows[0]
                     udp.append(on_udp_item(UDPV4_NAME, rows[0], prev))
                 else:
@@ -293,7 +293,7 @@ async def check_network(
                     prev = rows[0]
                     await asyncio.sleep(3)
                     rows = await wmiquery(conn, service, UDPV6_QUERY)
-                if rows:
+                if rows and prev:
                     UDPV6_CACHE[asset.id] = rows[0]
                     udp.append(on_udp_item(UDPV6_NAME, rows[0], prev))
                 else:
