@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Union
 
 
 class PidLookup:
@@ -8,7 +8,7 @@ class PidLookup:
     _MAX_AGE = 900
 
     @classmethod
-    def get(cls, asset_id: int) -> Dict[int, str]:
+    def get(cls, asset_id: int) -> Union[Dict[int, str], None]:
         ts, data = cls._lk.get(asset_id, (None, None))
         if ts is None or time.time() - ts > cls._MAX_AGE:
             return
@@ -24,7 +24,7 @@ class PidLookup:
         return data
 
 
-def parse_wmi_date(val, fmt: Optional[str] = '%Y%m%d') -> Union[int, None]:
+def parse_wmi_date(val, fmt: str = '%Y%m%d') -> Union[int, None]:
     if not val:
         return None
     try:

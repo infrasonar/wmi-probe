@@ -15,7 +15,7 @@ Variable            | Default                        | Description
 `DRY_RUN`           | _none_                         | Do not run demonized, just return checks and assets specified in the given yaml _(see the [Dry run section](#dry-run) below)_.
 `LOG_LEVEL`         | `warning`                      | Log level (`debug`, `info`, `warning`, `error` or `critical`).
 `LOG_COLORIZED`     | `0`                            | Log using colors (`0`=disabled, `1`=enabled).
-`LOG_FTM`           | `%y%m%d %H:%M:%S`              | Log format prefix.
+`LOG_FMT`           | `%y%m%d %H:%M:%S`              | Log format prefix.
 
 ## Docker build
 

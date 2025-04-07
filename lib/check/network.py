@@ -16,10 +16,30 @@ from ..values import (
 ADAPTER_TYPE = "adapter"
 ADAPTER_QUERY = Query("""
     SELECT
-    AdapterType, AutoSense, ConfigManagerErrorCode, MACAddress, Manufacturer,
-    NetConnectionID, NetConnectionStatus, NetEnabled, PhysicalAdapter,
-    PNPDeviceID, ProductName, ServiceName, Speed
+    AdapterType, AutoSense, ConfigManagerErrorCode, InterfaceIndex, MACAddress,
+    Manufacturer, NetConnectionID, NetConnectionStatus, NetEnabled,
+    PhysicalAdapter, PNPDeviceID, ProductName, ServiceName, Speed
     FROM Win32_NetworkAdapter
+""")
+ADAPTER_CONF_TYPE = "adapterConfiguration"
+ADAPTER_CONF_QUERY = Query("""
+    SELECT
+    ArpAlwaysSourceRoute, ArpUseEtherSNAP, Caption, DHCPEnabled,
+    DHCPLeaseExpires, DHCPLeaseObtained, DHCPServer, DNSDomain,
+    DNSDomainSuffixSearchOrder, DNSEnabledForWINSResolution, DNSHostName,
+    DNSServerSearchOrder, DatabasePath, DeadGWDetectEnabled, DefaultIPGateway,
+    DefaultTOS, DefaultTTL, Description, DomainDNSRegistrationEnabled,
+    ForwardBufferMemory, FullDNSRegistrationEnabled, GatewayCostMetric,
+    IGMPLevel, IPAddress, IPConnectionMetric, IPEnabled,
+    IPFilterSecurityEnabled, IPPortSecurityEnabled, IPSecPermitIPProtocols,
+    IPSecPermitTCPPorts, IPSecPermitUDPPorts, IPSubnet, IPUseZeroBroadcast,
+    InterfaceIndex, KeepAliveInterval, KeepAliveTime, MTU, NumForwardPackets,
+    PMTUBHDetectEnabled, PMTUDiscoveryEnabled, SettingID,
+    TcpMaxConnectRetransmissions, TcpMaxDataRetransmissions, TcpNumConnections,
+    TcpUseRFC1122UrgentPointer, TcpWindowSize, TcpipNetbiosOptions,
+    WINSEnableLMHostsLookup, WINSHostLookupFile, WINSPrimaryServer,
+    WINSScopeID, WINSSecondaryServer
+    FROM Win32_NetworkAdapterConfiguration
 """)
 INTERFACE_TYPE = "interface"
 INTERFACE_QUERY = Query("""
@@ -83,6 +103,19 @@ def on_item_adapter(itm: dict) -> dict:
         NET_CONN_STATUS.get(itm['NetConnectionStatus'], 'Other')
     itm['ConfigManagerErrorMsg'] = \
         CONFIG_MAN_ERR_CODE.get(itm['ConfigManagerErrorCode'])
+    return itm
+
+
+def on_item_adapter_conf(itm: dict) -> dict:
+    itm['name'] = itm.pop('Caption')
+
+    # as datetime in docs but can be empty string
+    expires_ts = itm.pop('DHCPLeaseExpires')
+    if isinstance(expires_ts, float):
+        itm['DHCPLeaseExpires'] = int(expires_ts)
+    obtained_ts = itm.pop('DHCPLeaseObtained')
+    if isinstance(obtained_ts, float):
+        itm['DHCPLeaseObtained'] = int(obtained_ts)
     return itm
 
 
@@ -152,13 +185,35 @@ async def check_network(
     async with get_asset_lock(asset):
         conn, service = await wmiconn(asset, asset_config, check_config)
         try:
+            rows = await wmiquery(conn, service, ADAPTER_CONF_QUERY)
+            state = get_state(ADAPTER_CONF_TYPE, rows, on_item_adapter_conf)
+            adapter_conf_lookup = {
+                row['InterfaceIndex']: row['name']
+                for row in state[ADAPTER_CONF_TYPE]
+            }
+
             rows = await wmiquery(conn, service, ADAPTER_QUERY)
-            state = get_state(ADAPTER_TYPE, rows, on_item_adapter)
+
+            # add AdapterConfigRef metric
+            for row in rows:
+                ref = adapter_conf_lookup.get(row['InterfaceIndex'])
+                row['AdapterConfig'] = ref  # can be None
+
+            state.update(get_state(ADAPTER_TYPE, rows, on_item_adapter))
+            adapter_if_lookup = {
+                row['InterfaceIndex']: row['name']
+                for row in state[ADAPTER_TYPE]
+            }
 
             rows = await wmiquery(conn, service, INTERFACE_QUERY)
             state.update(get_state(INTERFACE_TYPE, rows))
 
             rows = await wmiquery(conn, service, ROUTE_QUERY)
+
+            # add AdapterRef metric
+            for row in rows:
+                ref = adapter_if_lookup.get(row['InterfaceIndex'])
+                row['Adapter'] = ref  # can be None
             state.update(get_state(ROUTE_TYPE, rows, on_item_route))
 
             tcp = []
