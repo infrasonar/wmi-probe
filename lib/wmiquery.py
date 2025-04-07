@@ -82,7 +82,7 @@ async def wmiquery(
 
     try:
         async with query.context(conn, service, timeout=timeout) as qc:
-            async for props in qc.results():
+            async for props in qc.results():  # type: ignore
                 row = {}
                 for name, prop in props.items():
                     if refs and name in refs and prop.is_reference():
