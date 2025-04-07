@@ -33,8 +33,8 @@ ADAPTER_CONF_QUERY = Query("""
     IGMPLevel, IPAddress, IPConnectionMetric, IPEnabled,
     IPFilterSecurityEnabled, IPPortSecurityEnabled, IPSecPermitIPProtocols,
     IPSecPermitTCPPorts, IPSecPermitUDPPorts, IPSubnet, IPUseZeroBroadcast,
-    Index, InterfaceIndex, KeepAliveInterval, KeepAliveTime, MTU,
-    NumForwardPackets, PMTUBHDetectEnabled, PMTUDiscoveryEnabled, SettingID,
+    InterfaceIndex, KeepAliveInterval, KeepAliveTime, MTU, NumForwardPackets,
+    PMTUBHDetectEnabled, PMTUDiscoveryEnabled, SettingID,
     TcpMaxConnectRetransmissions, TcpMaxDataRetransmissions, TcpNumConnections,
     TcpUseRFC1122UrgentPointer, TcpWindowSize, TcpipNetbiosOptions,
     WINSEnableLMHostsLookup, WINSHostLookupFile, WINSPrimaryServer,
@@ -107,7 +107,7 @@ def on_item_adapter(itm: dict) -> dict:
 
 
 def on_item_adapter_conf(itm: dict) -> dict:
-    itm['name'] = str(itm.pop('Index'))
+    itm['name'] = itm.pop('Caption')
 
     # as datetime in docs but can be empty string
     expires_ts = itm.pop('DHCPLeaseExpires')
@@ -197,7 +197,7 @@ async def check_network(
             # add AdapterConfigRef metric
             for row in rows:
                 ref = adapter_conf_lookup.get(row['InterfaceIndex'])
-                row['AdapterConfigRef'] = ref  # can be None
+                row['AdapterConfig'] = ref  # can be None
 
             state.update(get_state(ADAPTER_TYPE, rows, on_item_adapter))
             adapter_if_lookup = {
@@ -213,7 +213,7 @@ async def check_network(
             # add AdapterRef metric
             for row in rows:
                 ref = adapter_if_lookup.get(row['InterfaceIndex'])
-                row['AdapterRef'] = ref  # can be None
+                row['Adapter'] = ref  # can be None
             state.update(get_state(ROUTE_TYPE, rows, on_item_route))
 
             tcp = []
