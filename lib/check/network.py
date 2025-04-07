@@ -2,6 +2,7 @@ import asyncio
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from libprobe.exceptions import IncompleteResultException
 from .asset_lock import get_asset_lock
 from ..counters import perf_counter_counter
 from ..utils import get_state
@@ -169,6 +170,7 @@ async def check_network(
         asset_config: dict,
         check_config: dict) -> dict:
     async with get_asset_lock(asset):
+        incomplete_adapter_ex = None
         conn, service = await wmiconn(asset, asset_config, check_config)
         try:
             rows = await wmiquery(conn, service, ADAPTER_CONF_QUERY)
@@ -182,12 +184,17 @@ async def check_network(
             }
 
             # merge adapter and adapter_configuration
-            for row in rows:
-                conf = adapter_conf_lookup.get(row['InterfaceIndex'])
-                # TODO raise IncompleteException / all metrics optional?
-                if conf is not None:
-                    row.update(conf)
-            state = get_state(ADAPTER_TYPE, rows, on_item_adapter)
+            merged = [
+                {**row, **adapter_conf_lookup[row['InterfaceIndex']]}
+                for row in rows
+                if row['InterfaceIndex'] in adapter_conf_lookup
+            ]
+            n_missing = len(rows) - len(merged)
+            if n_missing:
+                incomplete_adapter_ex = \
+                    f'Incomplete adapter config. {n_missing} items missing.'
+
+            state = get_state(ADAPTER_TYPE, merged, on_item_adapter)
 
             rows = await wmiquery(conn, service, INTERFACE_QUERY)
             state.update(get_state(INTERFACE_TYPE, rows))
@@ -262,4 +269,9 @@ async def check_network(
 
         finally:
             wmiclose(conn, service)
+
+        if incomplete_adapter_ex:
+            raise IncompleteResultException(
+                msg=incomplete_adapter_ex,
+                result=state)
         return state
