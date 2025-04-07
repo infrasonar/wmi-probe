@@ -238,7 +238,6 @@ async def check_network(
                 msg = str(e) or type(e).__name__
                 logging.error(f'failed TCPv4 query: {msg}')
 
-
             try:
                 rows = await wmiquery(conn, service, TCPV6_QUERY)
                 prev = TCPV6_CACHE.get(asset.id)
