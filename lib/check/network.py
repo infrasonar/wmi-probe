@@ -2,7 +2,6 @@ import asyncio
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
-from libprobe.exceptions import IncompleteResultException
 from .asset_lock import get_asset_lock
 from ..counters import perf_counter_counter
 from ..utils import get_state
@@ -22,6 +21,7 @@ ADAPTER_QUERY = Query("""
     PhysicalAdapter, PNPDeviceID, ProductName, ServiceName, Speed
     FROM Win32_NetworkAdapter
 """)
+ADAPTER_CONF_TYPE = "adapterConfiguration"
 ADAPTER_CONF_QUERY = Query("""
     SELECT
     ArpAlwaysSourceRoute, ArpUseEtherSNAP, Caption, DHCPEnabled,
@@ -106,6 +106,11 @@ def on_item_adapter(itm: dict) -> dict:
     return itm
 
 
+def on_item_adapter_conf(itm: dict) -> dict:
+    itm['name'] = str(itm.pop('Index'))
+    return itm
+
+
 def on_item_route(itm: dict) -> dict:
     itm['name'] = '{Destination} [{InterfaceIndex}]'.format_map(itm)
     itm['Metric'] = itm.pop('Metric1')
@@ -170,31 +175,27 @@ async def check_network(
         asset_config: dict,
         check_config: dict) -> dict:
     async with get_asset_lock(asset):
-        incomplete_adapter_ex = None
         conn, service = await wmiconn(asset, asset_config, check_config)
         try:
             rows = await wmiquery(conn, service, ADAPTER_CONF_QUERY)
+            state = get_state(ADAPTER_CONF_TYPE, rows, on_item_adapter_conf)
             adapter_conf_lookup = {
-                row['InterfaceIndex']: row for row in rows
+                row['InterfaceIndex']: row['name']
+                for row in state[ADAPTER_CONF_TYPE]
             }
 
             rows = await wmiquery(conn, service, ADAPTER_QUERY)
+
+            # add AdapterConfigRef metric
+            for row in rows:
+                ref = adapter_conf_lookup.get(row['InterfaceIndex'])
+                row['AdapterConfigRef'] = ref  # can be None
+
+            state.update(get_state(ADAPTER_TYPE, rows, on_item_adapter))
             adapter_if_lookup = {
-                row['InterfaceIndex']: row['PNPDeviceID'] for row in rows
+                row['InterfaceIndex']: row['name']
+                for row in state[ADAPTER_TYPE]
             }
-
-            # merge adapter and adapter_configuration
-            merged = [
-                {**row, **adapter_conf_lookup[row['InterfaceIndex']]}
-                for row in rows
-                if row['InterfaceIndex'] in adapter_conf_lookup
-            ]
-            n_missing = len(rows) - len(merged)
-            if n_missing:
-                incomplete_adapter_ex = \
-                    f'Incomplete adapter config. {n_missing} items missing.'
-
-            state = get_state(ADAPTER_TYPE, merged, on_item_adapter)
 
             rows = await wmiquery(conn, service, INTERFACE_QUERY)
             state.update(get_state(INTERFACE_TYPE, rows))
@@ -269,9 +270,4 @@ async def check_network(
 
         finally:
             wmiclose(conn, service)
-
-        if incomplete_adapter_ex:
-            raise IncompleteResultException(
-                msg=incomplete_adapter_ex,
-                result=state)
         return state
