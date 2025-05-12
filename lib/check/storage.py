@@ -95,21 +95,26 @@ async def check_storage(
 
             # At least one asset returns with a time-out on the shadow volume
             # query and therefore we ignore the type in the result. (issue #6)
-            try:
-                refs = {'Volume': volume_ref}
-                rows = await wmiquery(
-                    conn,
-                    service,
-                    SHADOW_QUERY,
-                    refs=refs,
-                    timeout=20)
-                state.update({SHADOW_TYPE: rows})
-            except (Exception, asyncio.TimeoutError) as e:
-                msg = str(e) or type(e).__name__
-                raise IncompleteResultException(
-                    f'failed to read shadow storage: {msg}',
-                    result=state,
-                    severity=Severity.LOW)
+            exclude_shadow_storage = \
+                check_config.get('exclude_shadow_storage', False)
+
+            if not exclude_shadow_storage:
+                try:
+                    refs = {'Volume': volume_ref}
+                    rows = await wmiquery(
+                        conn,
+                        service,
+                        SHADOW_QUERY,
+                        refs=refs,
+                        timeout=20)
+                    state.update({SHADOW_TYPE: rows})
+                except (Exception, asyncio.TimeoutError) as e:
+                    msg = str(e) or type(e).__name__
+                    raise IncompleteResultException(
+                        f'failed to read shadow storage: {msg}',
+                        result=state,
+                        severity=Severity.LOW)
+
         finally:
             wmiclose(conn, service)
 
