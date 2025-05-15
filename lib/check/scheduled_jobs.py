@@ -9,7 +9,7 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 SCHEDULE_JOBS_TYPE = "scheduledJobs"
 SCHEDULE_JOBS_QUERY = Query("""
     SELECT
-    Caption, Description, InstallDate, Name, Status, ElapsedTime, Priority
+    Caption, Description, InstallDate, Name, Status, ElapsedTime, Priority,
     TimeSubmitted, UntilTime, DaysOfMonth, DaysOfWeek, InteractWithDesktop,
     JobId, JobStatus, RunRepeatedly, StartTime
     FROM Win32_ScheduledJob
