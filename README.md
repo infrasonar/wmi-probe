@@ -26,7 +26,7 @@ docker build -t wmi-probe . --no-cache
 ## Config
 
 ```yaml
-vcenter:
+wmi:
   config:
     username: "my_account@domain"
     password: "my_password"
