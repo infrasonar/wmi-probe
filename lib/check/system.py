@@ -79,7 +79,6 @@ def validate(item, prev):
     return d > 0 and 0 <= round(100 * (1 - n / d)) <= 100
 
 
-
 class CheckSystem(Check):
     key = 'system'
     unchanged_eol: int = 0

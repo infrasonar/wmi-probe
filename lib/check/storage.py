@@ -78,7 +78,6 @@ async def volume_ref(
         raise CheckException(error_msg)
 
 
-
 class CheckStorage(Check):
     key = 'storage'
     unchanged_eol: int = 0
