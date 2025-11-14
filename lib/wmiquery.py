@@ -30,13 +30,13 @@ def get_class(query: str) -> str:
 
 async def wmiconn(
         asset: Asset,
-        asset_config: dict,
-        check_config: dict) -> Tuple[Connection, Service]:
-    address = check_config.get('address')
+        local_config: dict,
+        config: dict) -> Tuple[Connection, Service]:
+    address = config.get('address')
     if not address:
         address = asset.name
-    username = asset_config.get('username')
-    password = asset_config.get('password')
+    username = local_config.get('username')
+    password = local_config.get('password')
     if username is None or password is None:
         raise CheckException(
             'Missing credentials. Please refer to the following documentation'

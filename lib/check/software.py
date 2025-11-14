@@ -1,6 +1,7 @@
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from libprobe.check import Check
 from libprobe.exceptions import IgnoreCheckException
 from .asset_lock import get_asset_lock
 from ..utils import get_state, parse_wmi_date
@@ -51,28 +52,30 @@ def on_feature(itm: dict) -> dict:
     return itm
 
 
-async def check_software(
-        asset: Asset,
-        asset_config: dict,
-        check_config: dict) -> dict:
-    async with get_asset_lock(asset):
-        conn, service = await wmiconn(asset, asset_config, check_config)
-        try:
-            rows = await wmiquery(conn, service, INSTALLED_QUERY)
-            state = get_state(INSTALLED_TYPE_NAME, rows, on_installed)
+class CheckSoftware(Check):
+    key = 'software'
+    unchanged_eol: int = 3600 * 12
 
+    @staticmethod
+    async def run(asset: Asset, local_config: dict, config: dict) -> dict:
+        async with get_asset_lock(asset):
+            conn, service = await wmiconn(asset, local_config, config)
             try:
-                rows = await wmiquery(
-                    conn,
-                    service,
-                    FEATURE_QUERY,
-                    ignore=True)
-            except IgnoreCheckException as e:
-                logging.debug(str(e))
-            else:
-                if rows:
-                    state.update(
-                        get_state(FEATURE_TYPE_NAME, rows, on_feature))
-        finally:
-            wmiclose(conn, service)
-        return state
+                rows = await wmiquery(conn, service, INSTALLED_QUERY)
+                state = get_state(INSTALLED_TYPE_NAME, rows, on_installed)
+
+                try:
+                    rows = await wmiquery(
+                        conn,
+                        service,
+                        FEATURE_QUERY,
+                        ignore=True)
+                except IgnoreCheckException as e:
+                    logging.debug(str(e))
+                else:
+                    if rows:
+                        state.update(
+                            get_state(FEATURE_TYPE_NAME, rows, on_feature))
+            finally:
+                wmiclose(conn, service)
+            return state

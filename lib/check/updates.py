@@ -1,5 +1,6 @@
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from libprobe.check import Check
 from .asset_lock import get_asset_lock
 from ..utils import get_state, parse_wmi_date, parse_wmi_date_1600
 from ..wmiquery import wmiconn, wmiquery, wmiclose
@@ -29,26 +30,28 @@ def on_item(itm: dict) -> dict:
     }
 
 
-async def check_updates(
-        asset: Asset,
-        asset_config: dict,
-        check_config: dict) -> dict:
-    async with get_asset_lock(asset):
-        conn, service = await wmiconn(asset, asset_config, check_config)
-        try:
-            rows = await wmiquery(conn, service, QUERY)
-        finally:
-            wmiclose(conn, service)
+class CheckUpdates(Check):
+    key = 'updates'
+    unchanged_eol: int = 3600 * 12
 
-        state = get_state(TYPE_NAME, rows, on_item)
-        last = None
-        for itm in state[TYPE_NAME]:
-            if itm['InstalledOn'] and (
-                not last or itm['InstalledOn'] > last['InstalledOn']
-            ):
-                last = itm
+    @staticmethod
+    async def run(asset: Asset, local_config: dict, config: dict) -> dict:
+        async with get_asset_lock(asset):
+            conn, service = await wmiconn(asset, local_config, config)
+            try:
+                rows = await wmiquery(conn, service, QUERY)
+            finally:
+                wmiclose(conn, service)
 
-        if last:
-            state['last'] = [last]
+            state = get_state(TYPE_NAME, rows, on_item)
+            last = None
+            for itm in state[TYPE_NAME]:
+                if itm['InstalledOn'] and (
+                    not last or itm['InstalledOn'] > last['InstalledOn']
+                ):
+                    last = itm
 
-        return state
+            if last:
+                state['last'] = [last]
+
+            return state

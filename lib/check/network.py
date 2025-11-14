@@ -2,6 +2,7 @@ import asyncio
 import logging
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from libprobe.check import Check
 from .asset_lock import get_asset_lock
 from ..counters import perf_counter_counter
 from ..utils import get_state
@@ -178,136 +179,139 @@ def on_udp_item(name: str, item: dict, prev: dict):
     }
 
 
-async def check_network(
-        asset: Asset,
-        asset_config: dict,
-        check_config: dict) -> dict:
-    async with get_asset_lock(asset):
-        conn, service = await wmiconn(asset, asset_config, check_config)
-        try:
-            rows = await wmiquery(conn, service, ADAPTER_CONF_QUERY)
-            state = get_state(ADAPTER_CONF_TYPE, rows, on_item_adapter_conf)
-            adapter_conf_lookup = {
-                row['InterfaceIndex']: row['name']
-                for row in state[ADAPTER_CONF_TYPE]
-            }
+class CheckNetwork(Check):
+    key = 'network'
+    unchanged_eol: int = 0
 
-            rows = await wmiquery(conn, service, ADAPTER_QUERY)
-
-            # add AdapterConfigRef metric
-            for row in rows:
-                ref = adapter_conf_lookup.get(row['InterfaceIndex'])
-                row['AdapterConfig'] = ref  # can be None
-
-            state.update(get_state(ADAPTER_TYPE, rows, on_item_adapter))
-            adapter_if_lookup = {
-                row['InterfaceIndex']: row['name']
-                for row in state[ADAPTER_TYPE]
-            }
-
-            rows = await wmiquery(conn, service, INTERFACE_QUERY)
-            state.update(get_state(INTERFACE_TYPE, rows))
-
-            rows = await wmiquery(conn, service, ROUTE_QUERY)
-
-            # add AdapterRef metric
-            for row in rows:
-                ref = adapter_if_lookup.get(row['InterfaceIndex'])
-                row['Adapter'] = ref  # can be None
-            state.update(get_state(ROUTE_TYPE, rows, on_item_route))
-
-            tcp = []
+    @staticmethod
+    async def run(asset: Asset, local_config: dict, config: dict) -> dict:
+        async with get_asset_lock(asset):
+            conn, service = await wmiconn(asset, local_config, config)
             try:
-                rows = await wmiquery(conn, service, TCPV4_QUERY)
-                prev = TCPV4_CACHE.get(asset.id)
-                while rows and (
-                        prev is None or
-                        not validate_tcp_item(rows[0], prev)):
-                    prev = rows[0]
-                    await asyncio.sleep(3)
+                rows = await wmiquery(conn, service, ADAPTER_CONF_QUERY)
+                state = get_state(ADAPTER_CONF_TYPE, rows,
+                                  on_item_adapter_conf)
+                adapter_conf_lookup = {
+                    row['InterfaceIndex']: row['name']
+                    for row in state[ADAPTER_CONF_TYPE]
+                }
+
+                rows = await wmiquery(conn, service, ADAPTER_QUERY)
+
+                # add AdapterConfigRef metric
+                for row in rows:
+                    ref = adapter_conf_lookup.get(row['InterfaceIndex'])
+                    row['AdapterConfig'] = ref  # can be None
+
+                state.update(get_state(ADAPTER_TYPE, rows, on_item_adapter))
+                adapter_if_lookup = {
+                    row['InterfaceIndex']: row['name']
+                    for row in state[ADAPTER_TYPE]
+                }
+
+                rows = await wmiquery(conn, service, INTERFACE_QUERY)
+                state.update(get_state(INTERFACE_TYPE, rows))
+
+                rows = await wmiquery(conn, service, ROUTE_QUERY)
+
+                # add AdapterRef metric
+                for row in rows:
+                    ref = adapter_if_lookup.get(row['InterfaceIndex'])
+                    row['Adapter'] = ref  # can be None
+                state.update(get_state(ROUTE_TYPE, rows, on_item_route))
+
+                tcp = []
+                try:
                     rows = await wmiquery(conn, service, TCPV4_QUERY)
-                if rows and prev:
-                    TCPV4_CACHE[asset.id] = rows[0]
-                    tcp.append(on_tcp_item(TCPV4_NAME, rows[0], prev))
-                else:
-                    try:
-                        del TCPV4_CACHE[asset.id]
-                    except KeyError:
-                        pass
-            except Exception as e:
-                msg = str(e) or type(e).__name__
-                logging.error(f'failed TCPv4 query: {msg}')
-
-            try:
-                rows = await wmiquery(conn, service, TCPV6_QUERY)
-                prev = TCPV6_CACHE.get(asset.id)
-                while rows and (
+                    prev = TCPV4_CACHE.get(asset.id)
+                    while rows and (
                             prev is None or
                             not validate_tcp_item(rows[0], prev)):
-                    prev = rows[0]
-                    await asyncio.sleep(3)
+                        prev = rows[0]
+                        await asyncio.sleep(3)
+                        rows = await wmiquery(conn, service, TCPV4_QUERY)
+                    if rows and prev:
+                        TCPV4_CACHE[asset.id] = rows[0]
+                        tcp.append(on_tcp_item(TCPV4_NAME, rows[0], prev))
+                    else:
+                        try:
+                            del TCPV4_CACHE[asset.id]
+                        except KeyError:
+                            pass
+                except Exception as e:
+                    msg = str(e) or type(e).__name__
+                    logging.error(f'failed TCPv4 query: {msg}')
+
+                try:
                     rows = await wmiquery(conn, service, TCPV6_QUERY)
-                if rows and prev:
-                    TCPV6_CACHE[asset.id] = rows[0]
-                    tcp.append(on_tcp_item(TCPV6_NAME, rows[0], prev))
-                else:
-                    try:
-                        del TCPV6_CACHE[asset.id]
-                    except KeyError:
-                        pass
-            except Exception as e:
-                msg = str(e) or type(e).__name__
-                logging.error(f'failed TCPv6 query: {msg}')
+                    prev = TCPV6_CACHE.get(asset.id)
+                    while rows and (
+                                prev is None or
+                                not validate_tcp_item(rows[0], prev)):
+                        prev = rows[0]
+                        await asyncio.sleep(3)
+                        rows = await wmiquery(conn, service, TCPV6_QUERY)
+                    if rows and prev:
+                        TCPV6_CACHE[asset.id] = rows[0]
+                        tcp.append(on_tcp_item(TCPV6_NAME, rows[0], prev))
+                    else:
+                        try:
+                            del TCPV6_CACHE[asset.id]
+                        except KeyError:
+                            pass
+                except Exception as e:
+                    msg = str(e) or type(e).__name__
+                    logging.error(f'failed TCPv6 query: {msg}')
 
-            if tcp:
-                state[TCP_TYPE] = tcp
+                if tcp:
+                    state[TCP_TYPE] = tcp
 
-            udp = []
-            try:
-                rows = await wmiquery(conn, service, UDPV4_QUERY)
-                prev = UDPV4_CACHE.get(asset.id)
-                while rows and (
-                            prev is None or
-                            not validate_udp_item(rows[0], prev)):
-                    prev = rows[0]
-                    await asyncio.sleep(3)
+                udp = []
+                try:
                     rows = await wmiquery(conn, service, UDPV4_QUERY)
-                if rows and prev:
-                    UDPV4_CACHE[asset.id] = rows[0]
-                    udp.append(on_udp_item(UDPV4_NAME, rows[0], prev))
-                else:
-                    try:
-                        del UDPV4_CACHE[asset.id]
-                    except KeyError:
-                        pass
-            except Exception as e:
-                msg = str(e) or type(e).__name__
-                logging.error(f'failed UDPv4 query: {msg}')
+                    prev = UDPV4_CACHE.get(asset.id)
+                    while rows and (
+                                prev is None or
+                                not validate_udp_item(rows[0], prev)):
+                        prev = rows[0]
+                        await asyncio.sleep(3)
+                        rows = await wmiquery(conn, service, UDPV4_QUERY)
+                    if rows and prev:
+                        UDPV4_CACHE[asset.id] = rows[0]
+                        udp.append(on_udp_item(UDPV4_NAME, rows[0], prev))
+                    else:
+                        try:
+                            del UDPV4_CACHE[asset.id]
+                        except KeyError:
+                            pass
+                except Exception as e:
+                    msg = str(e) or type(e).__name__
+                    logging.error(f'failed UDPv4 query: {msg}')
 
-            try:
-                rows = await wmiquery(conn, service, UDPV6_QUERY)
-                prev = UDPV6_CACHE.get(asset.id)
-                while rows and (
-                            prev is None or
-                            not validate_udp_item(rows[0], prev)):
-                    prev = rows[0]
-                    await asyncio.sleep(3)
+                try:
                     rows = await wmiquery(conn, service, UDPV6_QUERY)
-                if rows and prev:
-                    UDPV6_CACHE[asset.id] = rows[0]
-                    udp.append(on_udp_item(UDPV6_NAME, rows[0], prev))
-                else:
-                    try:
-                        del UDPV6_CACHE[asset.id]
-                    except KeyError:
-                        pass
-            except Exception as e:
-                msg = str(e) or type(e).__name__
-                logging.error(f'failed UDPv6 query: {msg}')
+                    prev = UDPV6_CACHE.get(asset.id)
+                    while rows and (
+                                prev is None or
+                                not validate_udp_item(rows[0], prev)):
+                        prev = rows[0]
+                        await asyncio.sleep(3)
+                        rows = await wmiquery(conn, service, UDPV6_QUERY)
+                    if rows and prev:
+                        UDPV6_CACHE[asset.id] = rows[0]
+                        udp.append(on_udp_item(UDPV6_NAME, rows[0], prev))
+                    else:
+                        try:
+                            del UDPV6_CACHE[asset.id]
+                        except KeyError:
+                            pass
+                except Exception as e:
+                    msg = str(e) or type(e).__name__
+                    logging.error(f'failed UDPv6 query: {msg}')
 
-            if udp:
-                state[UDP_TYPE] = udp
+                if udp:
+                    state[UDP_TYPE] = udp
 
-        finally:
-            wmiclose(conn, service)
-        return state
+            finally:
+                wmiclose(conn, service)
+            return state

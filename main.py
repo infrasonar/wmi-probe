@@ -1,33 +1,32 @@
 from libprobe.probe import Probe
-from lib.check.memory import check_memory
-from lib.check.network import check_network
-from lib.check.netstat import check_netstat
-from lib.check.nt_domain import check_nt_domain
-from lib.check.process import check_process
-from lib.check.services import check_services
-from lib.check.software import check_software
-from lib.check.storage import check_storage
-from lib.check.system import check_system
-from lib.check.updates import check_updates
-from lib.check.users import check_users
+from lib.check.memory import CheckMemory
+from lib.check.network import CheckNetwork
+from lib.check.netstat import CheckNetstat
+from lib.check.nt_domain import CheckNtDomain
+from lib.check.process import CheckProcess
+from lib.check.services import CheckServices
+from lib.check.software import CheckSoftware
+from lib.check.storage import CheckStorage
+from lib.check.system import CheckSystem
+from lib.check.updates import CheckUpdates
+from lib.check.users import CheckUsers
 from lib.version import __version__ as version
 
 
 if __name__ == '__main__':
-    checks = {
-        'memory': check_memory,
-        'netstat': check_netstat,
-        'network': check_network,
-        'ntDomain': check_nt_domain,
-        'process': check_process,
-        'services': check_services,
-        'software': check_software,
-        'storage': check_storage,
-        'system': check_system,
-        'updates': check_updates,
-        'users': check_users,
-    }
+    checks = (
+        CheckMemory,
+        CheckNetwork,
+        CheckNetstat,
+        CheckNtDomain,
+        CheckProcess,
+        CheckServices,
+        CheckSoftware,
+        CheckStorage,
+        CheckSystem,
+        CheckUpdates,
+        CheckUsers,
+    )
 
     probe = Probe("wmi", version, checks)
-
     probe.start()

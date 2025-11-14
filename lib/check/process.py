@@ -1,6 +1,7 @@
 from aiowmi.query import Query
 from collections import defaultdict
 from libprobe.asset import Asset
+from libprobe.check import Check
 from .asset_lock import get_asset_lock
 from ..utils import PidLookup
 from ..wmiquery import wmiconn, wmiquery, wmiclose
@@ -43,50 +44,52 @@ def new_item():
     }
 
 
-async def check_process(
-        asset: Asset,
-        asset_config: dict,
-        check_config: dict) -> dict:
-    async with get_asset_lock(asset):
-        conn, service = await wmiconn(asset, asset_config, check_config)
-        try:
-            rows = await wmiquery(conn, service, QUERY)
-        finally:
-            wmiclose(conn, service)
+class CheckProcess(Check):
+    key = 'process'
+    unchanged_eol: int = 0
 
-        # update the pid lookup which is used by netstat check
-        PidLookup.set(asset.id, rows)
+    @staticmethod
+    async def run(asset: Asset, local_config: dict, config: dict) -> dict:
+        async with get_asset_lock(asset):
+            conn, service = await wmiconn(asset, local_config, config)
+            try:
+                rows = await wmiquery(conn, service, QUERY)
+            finally:
+                wmiclose(conn, service)
 
-        idict = defaultdict(new_item)
-        for row in rows:
-            name = row['Name'].split('#')[0]
-            itm = idict[name]
-            itm['name'] = name
-            itm['CreatingProcessID'].append(row['CreatingProcessID'])
-            itm['ElapsedTime'] += row['ElapsedTime']
-            itm['HandleCount'] += row['HandleCount']
-            itm['IDProcess'].append(row['IDProcess'])
-            itm['PageFaultsPersec'] += row['PageFaultsPersec']
-            itm['PageFileBytes'] += row['PageFileBytes']
-            itm['PageFileBytesPeak'] = max(
-                itm['PageFileBytesPeak'],
-                row['PageFileBytesPeak'])
-            itm['PercentPrivilegedTime'] += row['PercentPrivilegedTime']
-            itm['PercentProcessorTime'] += row['PercentProcessorTime']
-            itm['PercentUserTime'] += row['PercentUserTime']
-            itm['PoolNonpagedBytes'] += row['PoolNonpagedBytes']
-            itm['PoolPagedBytes'] += row['PoolPagedBytes']
-            itm['PriorityBase'].append(row['PriorityBase'])
-            itm['PrivateBytes'] += row['PrivateBytes']
-            itm['ProcessCount'] += 1
-            itm['ThreadCount'] += row['ThreadCount']
-            itm['VirtualBytes'] += row['VirtualBytes']
-            itm['VirtualBytesPeak'] = max(
-                itm['VirtualBytesPeak'],
-                row['VirtualBytesPeak'])
-            itm['WorkingSet'] += row['WorkingSet']
-            itm['WorkingSetPeak'] = max(
-                itm['WorkingSetPeak'],
-                row['WorkingSetPeak'])
+            # update the pid lookup which is used by netstat check
+            PidLookup.set(asset.id, rows)
 
-        return {TYPE_NAME: list(idict.values())}
+            idict = defaultdict(new_item)
+            for row in rows:
+                name = row['Name'].split('#')[0]
+                itm = idict[name]
+                itm['name'] = name
+                itm['CreatingProcessID'].append(row['CreatingProcessID'])
+                itm['ElapsedTime'] += row['ElapsedTime']
+                itm['HandleCount'] += row['HandleCount']
+                itm['IDProcess'].append(row['IDProcess'])
+                itm['PageFaultsPersec'] += row['PageFaultsPersec']
+                itm['PageFileBytes'] += row['PageFileBytes']
+                itm['PageFileBytesPeak'] = max(
+                    itm['PageFileBytesPeak'],
+                    row['PageFileBytesPeak'])
+                itm['PercentPrivilegedTime'] += row['PercentPrivilegedTime']
+                itm['PercentProcessorTime'] += row['PercentProcessorTime']
+                itm['PercentUserTime'] += row['PercentUserTime']
+                itm['PoolNonpagedBytes'] += row['PoolNonpagedBytes']
+                itm['PoolPagedBytes'] += row['PoolPagedBytes']
+                itm['PriorityBase'].append(row['PriorityBase'])
+                itm['PrivateBytes'] += row['PrivateBytes']
+                itm['ProcessCount'] += 1
+                itm['ThreadCount'] += row['ThreadCount']
+                itm['VirtualBytes'] += row['VirtualBytes']
+                itm['VirtualBytesPeak'] = max(
+                    itm['VirtualBytesPeak'],
+                    row['VirtualBytesPeak'])
+                itm['WorkingSet'] += row['WorkingSet']
+                itm['WorkingSetPeak'] = max(
+                    itm['WorkingSetPeak'],
+                    row['WorkingSetPeak'])
+
+            return {TYPE_NAME: list(idict.values())}

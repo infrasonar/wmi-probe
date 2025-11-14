@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from aiowmi.query import Query
 from libprobe.asset import Asset
+from libprobe.check import Check
 from .asset_lock import get_asset_lock
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
@@ -30,35 +31,37 @@ def get_itemname(itm):
         return None
 
 
-async def check_users(
-        asset: Asset,
-        asset_config: dict,
-        check_config: dict) -> dict:
-    async with get_asset_lock(asset):
-        conn, service = await wmiconn(asset, asset_config, check_config)
-        try:
-            rows = await wmiquery(conn, service, REMOTE_USERS_QUERY)
-            state = {
-                REMOTE_USERS_TYPE: [{
-                    'name': REMOTE_USERS_TYPE,
-                    'Count': len(rows) - 1,
+class CheckUsers(Check):
+    key = 'users'
+    unchanged_eol: int = 14400
+
+    @staticmethod
+    async def run(asset: Asset, local_config: dict, config: dict) -> dict:
+        async with get_asset_lock(asset):
+            conn, service = await wmiconn(asset, local_config, config)
+            try:
+                rows = await wmiquery(conn, service, REMOTE_USERS_QUERY)
+                state = {
+                    REMOTE_USERS_TYPE: [{
+                        'name': REMOTE_USERS_TYPE,
+                        'Count': len(rows) - 1,
+                    }]
+                }
+
+                rows = await wmiquery(conn, service, LOGGED_ON_QUERY)
+                name_login = defaultdict(int)
+                for itm in rows:
+                    name = get_itemname(itm)
+                    name_login[name] += 1
+
+                state[LOGGED_ON_TYPE] = [{
+                    'name': name,
+                    'SessionCount': count
+                } for name, count in name_login.items()]
+                state[f'{LOGGED_ON_TYPE}Total'] = [{
+                    'name': 'total',
+                    'SessionCount': len(rows)
                 }]
-            }
-
-            rows = await wmiquery(conn, service, LOGGED_ON_QUERY)
-            name_login = defaultdict(int)
-            for itm in rows:
-                name = get_itemname(itm)
-                name_login[name] += 1
-
-            state[LOGGED_ON_TYPE] = [{
-                'name': name,
-                'SessionCount': count
-            } for name, count in name_login.items()]
-            state[f'{LOGGED_ON_TYPE}Total'] = [{
-                'name': 'total',
-                'SessionCount': len(rows)
-            }]
-        finally:
-            wmiclose(conn, service)
-        return state
+            finally:
+                wmiclose(conn, service)
+            return state
