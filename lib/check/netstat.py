@@ -38,7 +38,7 @@ PID_QUERY = Query("""
 
 class CheckNetstat(Check):
     key = 'netstat'
-    unchanged_eol: int = 14400
+    unchanged_eol: int = 0
 
     @staticmethod
     async def run(asset: Asset, local_config: dict, config: dict) -> dict:
