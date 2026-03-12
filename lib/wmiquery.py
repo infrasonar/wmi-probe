@@ -28,6 +28,7 @@ KCACHE: dict[tuple[str, str, str], KerberosCache] = {}
 AUTH_NTLM = 'NTLM'
 AUTH_KERBEROS = 'Kerberos'
 
+
 def get_class(query: str) -> str:
     o = QUERY_CLASS_PAT.search(query)
     return o.group(1) if o else 'unknown'
