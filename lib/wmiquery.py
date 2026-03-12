@@ -107,11 +107,11 @@ async def wmiconn(
         elif auth == AUTH_KERBEROS:
             service = await conn.negotiate_kerberos()
         else:
-            raise Exception(f'Invalid auth type: {auth}')
+            raise Exception(f'invalid auth type: {auth}')
     except Exception as e:
         conn.close()
         error_msg = str(e) or type(e).__name__
-        raise CheckException(f'unable to authenticate: {error_msg}')
+        raise Exception(f'unable to authenticate: {error_msg}')
 
     return conn, service
 
