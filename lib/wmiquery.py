@@ -88,7 +88,18 @@ async def wmiconn(
                 f'Failed to read FQDN for: `{address}` '
                 '(Kerberos authentication require an FQDN)')
 
-    conn = Connection(*key,
+    # TODO: rm this logging
+    logging.debug(f"""Call with:
+        host={address},
+        username={username},
+        password={password},
+        domain={domain},
+        kdc_host={kdc_host},
+        kdc_port={kdc_port},
+""")
+    conn = Connection(host=address,
+                      username=username,
+                      password=password,
                       domain=domain,
                       kdc_host=kdc_host,
                       kdc_port=kdc_port,
