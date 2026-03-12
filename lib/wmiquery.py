@@ -1,6 +1,8 @@
 import datetime
 import logging
 import asyncio
+import ipaddress
+import socket
 import re
 from aiowmi.query import Query
 from libprobe.asset import Asset
@@ -9,6 +11,7 @@ from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import (
     WbemExInvalidClass, WbemExInvalidNamespace, WbemExInitializationFailure)
+from aiowmi.kerberos.cache import KerberosCache
 from typing import List, Tuple, Optional
 from . import DOCS_URL
 
@@ -21,7 +24,9 @@ DTYPS_NOT_NULL = {
 }
 QUERY_TIMEOUT = 120
 QUERY_CLASS_PAT = re.compile(r'\s+from\s(\w+)\s?', re.IGNORECASE)
-
+KCACHE: dict[tuple[str, str, str], KerberosCache] = {}
+AUTH_NTLM = 'NTLM'
+AUTH_KERBEROS = 'Kerberos'
 
 def get_class(query: str) -> str:
     o = QUERY_CLASS_PAT.search(query)
@@ -37,6 +42,9 @@ async def wmiconn(
         address = asset.name
     username = local_config.get('username')
     password = local_config.get('password')
+    kdc_host = local_config.get('kdc_host') or None
+    kdc_port = local_config.get('kdc_port') or 88
+    auth = local_config.get('authentication', AUTH_NTLM)
     if username is None or password is None:
         raise CheckException(
             'Missing credentials. Please refer to the following documentation'
@@ -52,7 +60,38 @@ async def wmiconn(
     else:
         domain = ''
 
-    conn = Connection(address, username, password, domain)
+    # doesn't matter if we use NTLM or Kerberos
+    key = address, username, password
+    kcache = KCACHE.get(key)
+
+    if auth == AUTH_KERBEROS:
+        if kcache is None:
+            # create TGS/TGT cache for this asset
+            kcache = KCACHE[key] = KerberosCache()
+
+        if not domain:
+            raise CheckException(
+                'Domain is required for Kerberos authentication. '
+                f'Please format the username as {username}@DOMAIN '
+                'in the probe configuration')
+
+        try:
+            ipaddress.ip_address(address)
+            loop = asyncio.get_running_loop()
+            result = await loop.getnameinfo((address, 0), socket.NI_NAMEREQD)
+            address = result[0]
+        except ValueError:
+            pass
+        except Exception as e:
+            raise CheckException(
+                f'Failed to read FQDN for: `{address}` '
+                '(Kerberos authentication require an FQDN)')
+
+    conn = Connection(*key,
+                      domain=domain,
+                      kdc_host=kdc_host,
+                      kdc_port=kdc_port,
+                      kerberos_cache=kcache)
     service = None
 
     try:
@@ -62,7 +101,12 @@ async def wmiconn(
         raise CheckException(f'unable to connect: {error_msg}')
 
     try:
-        service = await conn.negotiate_ntlm()
+        if auth == AUTH_NTLM:
+            service = await conn.negotiate_ntlm()
+        elif auth == AUTH_KERBEROS:
+            service = await conn.negotiate_kerberos()
+        else:
+            raise Exception(f'Invalid auth type: {auth}')
     except Exception as e:
         conn.close()
         error_msg = str(e) or type(e).__name__
