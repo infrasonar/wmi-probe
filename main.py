@@ -28,5 +28,5 @@ if __name__ == '__main__':
         CheckUsers,
     )
 
-    probe = Probe("wmi", version, checks)
+    probe = Probe("wmi", version, checks, loggers=('aiowmi',))
     probe.start()
