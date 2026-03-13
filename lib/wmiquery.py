@@ -45,7 +45,7 @@ async def wmiconn(
     password = local_config.get('password')
     kdc_host = local_config.get('kdc_host') or None
     kdc_port = local_config.get('kdc_port') or 88
-    auth = local_config.get('authentication', AUTH_NTLM)
+    auth = config.get('authentication', AUTH_NTLM)
     if username is None or password is None:
         raise CheckException(
             'Missing credentials. Please refer to the following documentation'
@@ -88,15 +88,6 @@ async def wmiconn(
                 f'Failed to read FQDN for: `{address}` '
                 '(Kerberos authentication require an FQDN)')
 
-    # TODO: rm this logging
-    logging.debug(f"""Call with:
-        host={address},
-        username={username},
-        password={password},
-        domain={domain},
-        kdc_host={kdc_host},
-        kdc_port={kdc_port},
-""")
     conn = Connection(host=address,
                       username=username,
                       password=password,
