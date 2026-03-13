@@ -76,6 +76,12 @@ async def wmiconn(
                 f'Please format the username as {username}@DOMAIN '
                 'in the probe configuration')
 
+        if "." not in domain:
+            raise CheckException(
+                f"`{domain}` looks like a NetBIOS name. "
+                "Kerberos requires a Full Domain Name "
+                "(for example user@MY.DOMAIN.LOCAL)")
+
         try:
             ipaddress.ip_address(address)
             loop = asyncio.get_running_loop()
