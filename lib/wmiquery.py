@@ -70,7 +70,9 @@ async def wmiconn(
     if key in CONN_CACHE:
         conn, service, ref = CONN_CACHE[key]
         CONN_CACHE[key] = (conn, service, ref + 1)
-        return conn, service
+        if conn.is_connected():
+            logging.info(f'Using connection cache for {asset}')
+            return conn, service
 
     # doesn't matter if we use NTLM or Kerberos
     kcache = KCACHE.get(key)
@@ -190,7 +192,7 @@ async def _wmiclose(conn: Connection, service: Service):
         if c == conn:
             break
     else:
-        logging.error('Connection not in cache...(must not happen)')
+        logging.error('Connection not in cache...(closed early)')
         service.close()
         conn.close()
         return
