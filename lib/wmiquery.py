@@ -199,6 +199,7 @@ async def _wmiclose(conn: Connection, service: Service):
     if r:
         CONN_CACHE[key] = (c, s, r)
     else:
+        del CONN_CACHE[key]
         service.close()
         conn.close()
 
