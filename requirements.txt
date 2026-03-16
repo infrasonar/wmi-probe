@@ -1,4 +1,4 @@
-aiowmi==1.0.9
+aiowmi==1.0.10
 aiodns==4.0.0
 libprobe==2.0.4
 pywmitool>=0.1.3

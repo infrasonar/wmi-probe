@@ -17,6 +17,9 @@ from .kdc import get_kdc
 from . import DOCS_URL
 
 
+type Key = tuple[int, str, str, str, str, str]
+
+
 DTYPS_NOT_NULL = {
     int: 0,
     bool: False,
@@ -25,9 +28,10 @@ DTYPS_NOT_NULL = {
 }
 QUERY_TIMEOUT = 120
 QUERY_CLASS_PAT = re.compile(r'\s+from\s(\w+)\s?', re.IGNORECASE)
-KCACHE: dict[tuple[str, str, str], KerberosCache] = {}
+KCACHE: dict[Key, KerberosCache] = {}
 AUTH_NTLM = 'NTLM'
 AUTH_KERBEROS = 'Kerberos'
+CONN_CACHE: dict[Key, tuple[Connection, Service, int]] = {}
 
 
 def get_class(query: str) -> str:
@@ -60,10 +64,15 @@ async def wmiconn(
     else:
         domain = ''
 
-    # doesn't matter if we use NTLM or Kerberos
-    key = address, username, password
-    kcache = KCACHE.get(key)
+    # re-use connection from cache
+    key = asset.id, address, username, domain, password, auth
+    if key in CONN_CACHE:
+        conn, service, ref = CONN_CACHE[key]
+        CONN_CACHE[key] = (conn, service, ref + 1)
+        return conn, service
 
+    # doesn't matter if we use NTLM or Kerberos
+    kcache = KCACHE.get(key)
     if auth == AUTH_KERBEROS:
         if kcache is None:
             # create TGS/TGT cache for this asset
@@ -120,6 +129,7 @@ async def wmiconn(
         error_msg = str(e) or type(e).__name__
         raise Exception(f'unable to authenticate: {error_msg}')
 
+    CONN_CACHE[key] = (conn, service, 1)
     return conn, service
 
 
@@ -172,6 +182,25 @@ async def wmiquery(
     return rows
 
 
+async def _wmiclose(conn: Connection, service: Service):
+    await asyncio.sleep(60)
+
+    for key, (c, s, r) in CONN_CACHE.items():
+        if c == conn:
+            break
+    else:
+        logging.error('Connection not in cache...(must not happen)')
+        service.close()
+        conn.close()
+        return
+
+    r -= 1
+    if r:
+        CONN_CACHE[key] = (c, s, r)
+    else:
+        service.close()
+        conn.close()
+
+
 def wmiclose(conn: Connection, service: Service):
-    service.close()
-    conn.close()
+    asyncio.ensure_future(_wmiclose(conn, service))
