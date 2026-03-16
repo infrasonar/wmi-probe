@@ -30,11 +30,7 @@ wmi:
   config:
     username: "my_account@domain"
     password: "my_password"
-    kdc_host: ""
-    kdc_port: 88
 ```
-
-> The `kdc_host` and `kdc_port` parameters are specific to Kerberos authentication and will be ignored for NTLM.
 
 ## Dry run
 

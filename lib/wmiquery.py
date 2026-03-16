@@ -13,6 +13,7 @@ from aiowmi.exceptions import (
     WbemExInvalidClass, WbemExInvalidNamespace, WbemExInitializationFailure)
 from aiowmi.kerberos.cache import KerberosCache
 from typing import List, Tuple, Optional
+from .kdc import get_kdc
 from . import DOCS_URL
 
 
@@ -43,8 +44,6 @@ async def wmiconn(
         address = asset.name
     username = local_config.get('username')
     password = local_config.get('password')
-    kdc_host = local_config.get('kdc_host') or None
-    kdc_port = local_config.get('kdc_port') or 88
     auth = config.get('authentication', AUTH_NTLM)
     if username is None or password is None:
         raise CheckException(
@@ -98,8 +97,6 @@ async def wmiconn(
                       username=username,
                       password=password,
                       domain=domain,
-                      kdc_host=kdc_host,
-                      kdc_port=kdc_port,
                       kerberos_cache=kcache)
     service = None
 
@@ -113,6 +110,8 @@ async def wmiconn(
         if auth == AUTH_NTLM:
             service = await conn.negotiate_ntlm()
         elif auth == AUTH_KERBEROS:
+            kdc_host, kdc_port = await get_kdc(domain=domain)
+            conn.set_kdc(kdc_host, kdc_port)
             service = await conn.negotiate_kerberos()
         else:
             raise Exception(f'invalid auth type: {auth}')
