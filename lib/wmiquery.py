@@ -32,6 +32,7 @@ KCACHE: dict[Key, KerberosCache] = {}
 AUTH_NTLM = 'NTLM'
 AUTH_KERBEROS = 'Kerberos'
 CONN_CACHE: dict[Key, tuple[Connection, Service, int]] = {}
+KEEP_CONN_TTL = 30.0  # Keep connection alive for x seconds after request
 
 
 def get_class(query: str) -> str:
@@ -183,7 +184,7 @@ async def wmiquery(
 
 
 async def _wmiclose(conn: Connection, service: Service):
-    await asyncio.sleep(60)
+    await asyncio.sleep(KEEP_CONN_TTL)
 
     for key, (c, s, r) in CONN_CACHE.items():
         if c == conn:
