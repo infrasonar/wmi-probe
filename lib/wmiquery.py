@@ -192,7 +192,7 @@ async def _wmiclose(conn: Connection, service: Service):
         if c == conn:
             break
     else:
-        logging.error('Connection not in cache...(closed early)')
+        logging.error('Connection not in cache...(should not happen)')
         service.close()
         conn.close()
         return
