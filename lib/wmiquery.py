@@ -124,7 +124,7 @@ async def wmiconn(
         elif auth == AUTH_KERBEROS:
             kdc_host, kdc_port = await get_kdc(domain=domain)
             conn.set_kdc(kdc_host, kdc_port)
-            service = await conn.negotiate_kerberos(max_retry=5)
+            service = await conn.negotiate_kerberos()
         else:
             raise Exception(f'invalid auth type: {auth}')
     except Exception as e:
