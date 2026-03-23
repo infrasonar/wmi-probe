@@ -4,6 +4,7 @@ import asyncio
 import ipaddress
 import socket
 import re
+import time
 from aiowmi.query import Query
 from libprobe.asset import Asset
 from libprobe.exceptions import CheckException, IgnoreCheckException
@@ -31,7 +32,7 @@ QUERY_CLASS_PAT = re.compile(r'\s+from\s(\w+)\s?', re.IGNORECASE)
 KCACHE: dict[Key, KerberosCache] = {}
 AUTH_NTLM = 'NTLM'
 AUTH_KERBEROS = 'Kerberos'
-CONN_CACHE: dict[Key, tuple[Connection, Service, int]] = {}
+CONN_CACHE: dict[Key, tuple[Connection, Service, int, float]] = {}
 KEEP_CONN_TTL = 30.0  # Keep connection alive for x seconds after request
 
 
@@ -66,13 +67,16 @@ async def wmiconn(
         domain = ''
 
     # re-use connection from cache
+    ttl = 0
+    now = time.time()
     key = asset.id, address, username, domain, password, auth
     if key in CONN_CACHE:
-        conn, service, ref = CONN_CACHE[key]
-        CONN_CACHE[key] = (conn, service, ref + 1)
-        if conn.is_connected():
-            logging.info(f'Using connection cache for {asset}')
-            return conn, service
+        conn, service, ref, ttl = CONN_CACHE[key]
+        if now < ttl:
+            CONN_CACHE[key] = (conn, service, ref + 1, ttl)
+            if conn.is_connected():
+                logging.info(f'Using connection cache for {asset}')
+                return conn, service
 
     # doesn't matter if we use NTLM or Kerberos
     kcache = KCACHE.get(key)
@@ -132,7 +136,9 @@ async def wmiconn(
         error_msg = str(e) or type(e).__name__
         raise Exception(f'unable to authenticate: {error_msg}')
 
-    CONN_CACHE[key] = (conn, service, 1)
+    if ttl == 0:
+        # only cache when not in cache
+        CONN_CACHE[key] = (conn, service, 1, now + KEEP_CONN_TTL)
     return conn, service
 
 
@@ -188,18 +194,18 @@ async def wmiquery(
 async def _wmiclose(conn: Connection, service: Service):
     await asyncio.sleep(KEEP_CONN_TTL)
 
-    for key, (c, s, r) in CONN_CACHE.items():
+    for key, (c, s, r, ttl) in CONN_CACHE.items():
         if c == conn:
             break
     else:
-        logging.error('Connection not in cache...(should not happen)')
+        # not in cache
         service.close()
         conn.close()
         return
 
     r -= 1
     if r:
-        CONN_CACHE[key] = (c, s, r)
+        CONN_CACHE[key] = (c, s, r, ttl)
     else:
         del CONN_CACHE[key]
         service.close()
