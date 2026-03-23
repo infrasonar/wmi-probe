@@ -33,7 +33,7 @@ KCACHE: dict[Key, KerberosCache] = {}
 AUTH_NTLM = 'NTLM'
 AUTH_KERBEROS = 'Kerberos'
 CONN_CACHE: dict[Key, tuple[Connection, Service, int, float]] = {}
-KEEP_CONN_TTL = 30.0  # Keep connection alive for x seconds after request
+KEEP_CONN_TTL = 30.0  # Keep connection alive for max x seconds after request
 
 
 def get_class(query: str) -> str:
