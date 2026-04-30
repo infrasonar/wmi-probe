@@ -22,7 +22,7 @@ REMOTE_USERS_QUERY = Query("""
 """)
 
 
-def get_itemname(itm):
+def get_itemname(itm: dict):
     try:
         splitted = itm['Antecedent'].split('"')
         return splitted[1] + '\\' + splitted[3]

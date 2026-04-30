@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Callable
+from typing import Any, Callable
 
 
 class PidLookup:
@@ -24,7 +24,7 @@ class PidLookup:
         return data
 
 
-def parse_wmi_date(val, fmt: str = '%Y%m%d') -> int | None:
+def parse_wmi_date(val: Any, fmt: str = '%Y%m%d') -> int | None:
     if not val:
         return None
     try:
@@ -36,7 +36,7 @@ def parse_wmi_date(val, fmt: str = '%Y%m%d') -> int | None:
         return None
 
 
-def parse_wmi_date_1600(val) -> int | None:
+def parse_wmi_date_1600(val: Any) -> int | None:
     if not val:
         return None
     seconds1600 = 11644473600  # seconds from 1600

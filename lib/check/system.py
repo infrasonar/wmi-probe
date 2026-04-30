@@ -73,7 +73,7 @@ def on_item_os(itm: dict) -> dict:
     }
 
 
-def validate(item, prev):
+def validate(item: dict, prev: dict):
     n = item['PercentProcessorTime'] - prev['PercentProcessorTime']
     d = item['Timestamp_Sys100NS'] - prev['Timestamp_Sys100NS']
     return d > 0 and 0 <= round(100 * (1 - n / d)) <= 100

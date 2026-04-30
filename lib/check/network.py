@@ -128,7 +128,7 @@ def on_item_route(itm: dict) -> dict:
     return itm
 
 
-def validate_tcp_item(item, prev):
+def validate_tcp_item(item: dict, prev: dict):
     return item['Timestamp_PerfTime'] > prev['Timestamp_PerfTime'] and \
         item['SegmentsPersec'] >= prev['SegmentsPersec'] and \
         item['SegmentsSentPersec'] >= prev['SegmentsSentPersec'] and \
@@ -137,7 +137,7 @@ def validate_tcp_item(item, prev):
         prev['SegmentsRetransmittedPersec']
 
 
-def validate_udp_item(item, prev):
+def validate_udp_item(item: dict, prev: dict):
     return item['Timestamp_PerfTime'] > prev['Timestamp_PerfTime'] and \
         item['DatagramsNoPortPersec'] >= prev['DatagramsNoPortPersec'] and \
         item['DatagramsPersec'] >= prev['DatagramsPersec'] and \
