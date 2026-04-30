@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Callable, Dict, List, Union
+from typing import Callable
 
 
 class PidLookup:
@@ -8,14 +8,14 @@ class PidLookup:
     _MAX_AGE = 900
 
     @classmethod
-    def get(cls, asset_id: int) -> Union[Dict[int, str], None]:
+    def get(cls, asset_id: int) -> dict[int, str] | None:
         ts, data = cls._lk.get(asset_id, (None, None))
         if ts is None or time.time() - ts > cls._MAX_AGE:
             return
         return data
 
     @classmethod
-    def set(cls, asset_id: int, rows: list) -> Dict[int, str]:
+    def set(cls, asset_id: int, rows: list) -> dict[int, str]:
         data = {
             row['IDProcess']: row['Name'].split('#')[0]
             for row in rows
@@ -24,7 +24,7 @@ class PidLookup:
         return data
 
 
-def parse_wmi_date(val, fmt: str = '%Y%m%d') -> Union[int, None]:
+def parse_wmi_date(val, fmt: str = '%Y%m%d') -> int | None:
     if not val:
         return None
     try:
@@ -36,7 +36,7 @@ def parse_wmi_date(val, fmt: str = '%Y%m%d') -> Union[int, None]:
         return None
 
 
-def parse_wmi_date_1600(val) -> Union[int, None]:
+def parse_wmi_date_1600(val) -> int | None:
     if not val:
         return None
     seconds1600 = 11644473600  # seconds from 1600
@@ -64,7 +64,7 @@ def add_total_item(state: dict, total_item: dict, type_name: str):
 
 def get_state_total(
         type_name: str,
-        rows: List[dict],
+        rows: list[dict],
         on_item: Callable[[dict], dict] = get_item) -> dict:
     """Default get_state function."""
 
@@ -85,7 +85,7 @@ def get_state_total(
 
 def get_state(
         type_name: str,
-        rows: List[dict],
+        rows: list[dict],
         on_item: Callable[[dict], dict] = get_item) -> dict:
     """Default get_state function."""
     return {type_name: [on_item(itm) for itm in rows]}
