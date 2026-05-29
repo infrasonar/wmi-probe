@@ -29,6 +29,14 @@ QUERY = Query("""
     FROM MSFT_NetTCPConnection
 """, namespace=r'ROOT\StandardCIMV2')
 
+QUERY_LISTEN = Query("""
+    SELECT
+    CreationTime, InstanceID, LocalAddress, LocalPort, OwningProcess,
+    RemoteAddress, RemotePort, State
+    FROM MSFT_NetTCPConnection
+    WHERE State = 2
+""", namespace=r'ROOT\StandardCIMV2')
+
 PID_QUERY = Query("""
     SELECT
     Name, IDProcess
@@ -44,9 +52,11 @@ class CheckNetstat(Check):
     async def run(asset: Asset, local_config: dict, config: dict) -> dict:
         async with get_asset_lock(asset):
             conn, service = await wmiconn(asset, local_config, config)
+            include_all_states = config.get('include_all_states', False)
+            query = QUERY if include_all_states else QUERY_LISTEN
 
             try:
-                rows = await wmiquery(conn, service, QUERY)
+                rows = await wmiquery(conn, service, query)
 
                 # retrieve pid lookup,
                 # when empty or aged query it here and set
