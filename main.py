@@ -1,3 +1,5 @@
+import resource
+import logging
 from libprobe.probe import Probe
 from lib.check.memory import CheckMemory
 from lib.check.network import CheckNetwork
@@ -11,6 +13,17 @@ from lib.check.system import CheckSystem
 from lib.check.updates import CheckUpdates
 from lib.check.users import CheckUsers
 from lib.version import __version__ as version
+
+
+def raise_file_limit():
+    try:
+        _soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+        new_soft, new_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        logging.info(
+            f"Updated file descriptor limit: soft={new_soft}, hard={new_hard}")
+    except Exception as e:
+        logging.warning(f"Could not raise file descriptor limit: {e}")
 
 
 if __name__ == '__main__':
@@ -29,4 +42,5 @@ if __name__ == '__main__':
     )
 
     probe = Probe("wmi", version, checks, loggers=('aiowmi',))
+    raise_file_limit()
     probe.start()
